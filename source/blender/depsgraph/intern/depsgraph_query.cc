@@ -33,6 +33,8 @@
 #include "MEM_guardedalloc.h"
 
 extern "C" {
+#include "BLI_math.h"
+#include "BKE_anim.h"
 #include "BKE_idcode.h"
 #include "BKE_layer.h"
 #include "BKE_main.h"
@@ -97,42 +99,85 @@ Object *DEG_get_object(Depsgraph * /*depsgraph*/, Object *ob)
 
 /* ************************ DAG ITERATORS ********************* */
 
-typedef struct DEGObjectsIteratorData {
-	Depsgraph *graph;
-	Scene *scene;
-	SceneLayer *scene_layer;
-	Base *base;
-	int flag;
-} DEGObjectsIteratorData;
-
 void DEG_objects_iterator_begin(BLI_Iterator *iter, void *data_in)
 {
 	SceneLayer *scene_layer;
 	Depsgraph *graph = (Depsgraph *) data_in;
-	DEGObjectsIteratorData *data = (DEGObjectsIteratorData *)
-	                               MEM_callocN(sizeof(DEGObjectsIteratorData), __func__);
+	DEGObjectsIteratorData *data = (DEGObjectsIteratorData *) data_in;
+
 	iter->data = data;
 	iter->valid = true;
 
-	data->graph = graph;
 	data->scene = DEG_get_scene(graph);
 	scene_layer = DEG_get_scene_layer(graph);
-	data->flag = ~(BASE_FROM_SET);
+	data->base_flag = ~(BASE_FROM_SET);
 
 	Base base = {(Base *)scene_layer->object_bases.first, NULL};
 	data->base = &base;
 	DEG_objects_iterator_next(iter);
 }
 
+/**
+ * Temporary function to flush depsgraph until we get copy on write (CoW)
+ */
+static void deg_flush_data(Object *ob, Base *base, const int flag)
+{
+	ob->base_flag = (base->flag | BASE_FROM_SET) & flag;
+	ob->base_collection_properties = base->collection_properties;
+	ob->base_selection_color = base->selcol;
+}
+
+static bool deg_objects_dupli_iterator_next(BLI_Iterator *iter)
+{
+	DEGObjectsIteratorData *data = (DEGObjectsIteratorData *)iter->data;
+	while (data->dupli_object) {
+		DupliObject *dob = data->dupli_object;
+		Object *obd = dob->ob;
+
+		data->dupli_object = data->dupli_object->next;
+
+		/* Group duplis need to set ob matrices correct, for deform. so no_draw is part handled. */
+		if (!(obd->transflag & OB_RENDER_DUPLI) && dob->no_draw) {
+			continue;
+		}
+
+		if (obd->type==OB_MBALL) {
+			continue;
+		}
+
+		copy_m4_m4(obd->obmat, dob->mat);
+		deg_flush_data(obd, data->base, data->base_flag | BASE_FROMDUPLI);
+		iter->current = obd;
+		return true;
+	}
+
+	return false;
+}
+
 void DEG_objects_iterator_next(BLI_Iterator *iter)
 {
 	DEGObjectsIteratorData *data = (DEGObjectsIteratorData *)iter->data;
-	Base *base = data->base->next;
+	Base *base;
+
+	if (data->dupli_list) {
+		if (deg_objects_dupli_iterator_next(iter)) {
+			return;
+		}
+		else {
+			free_object_duplilist(data->dupli_list);
+			data->dupli_list = NULL;
+			data->dupli_object = NULL;
+			copy_m4_m4(((Object *)iter->current)->obmat, data->dupli_matrix);
+		}
+	}
+
+	base = data->base->next;
 
 	while (base) {
 		if ((base->flag & BASE_VISIBLED) != 0) {
 			Object *ob = DEG_get_object(data->graph, base->object);
 			iter->current = ob;
+			data->base = base;
 
 			/* Make sure we have the base collection settings is already populated.
 			 * This will fail when BKE_layer_eval_layer_collection_pre hasn't run yet
@@ -140,20 +185,25 @@ void DEG_objects_iterator_next(BLI_Iterator *iter)
 			BLI_assert(!BLI_listbase_is_empty(&base->collection_properties->data.group));
 
 			/* Flushing depsgraph data. */
-			ob->base_flag = (base->flag | BASE_FROM_SET) & data->flag;
-			ob->base_collection_properties = base->collection_properties;
-			ob->base_selection_color = base->selcol;
-			data->base = base;
+			deg_flush_data(ob, base, data->base_flag);
+
+			if ((data->flag & DEG_OBJECT_ITER_FLAG_DUPLI) && (ob->transflag & OB_DUPLI)) {
+				copy_m4_m4(data->dupli_matrix, ob->obmat);
+				data->dupli_list = object_duplilist(G.main->eval_ctx, data->scene, ob);
+				dupli_render_particles_set(data->scene, ob, 0, 0);
+				data->dupli_object = (DupliObject *)data->dupli_list->first;
+			}
 			return;
 		}
+
 		base = base->next;
 	}
 
 	/* Look for an object in the next set. */
-	if (data->scene->set) {
+	if ((data->flag & DEG_OBJECT_ITER_FLAG_SET) && data->scene->set) {
 		SceneLayer *scene_layer;
 		data->scene = data->scene->set;
-		data->flag = ~(BASE_SELECTED | BASE_SELECTABLED);
+		data->base_flag = ~(BASE_SELECTED | BASE_SELECTABLED);
 
 		/* For the sets we use the layer used for rendering. */
 		scene_layer = BKE_scene_layer_render_active(data->scene);

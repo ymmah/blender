@@ -44,6 +44,7 @@
 #include "DNA_anim_types.h"
 #include "DNA_group_types.h"
 #include "DNA_mesh_types.h"
+#include "DNA_modifier_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_vfont_types.h"
 
@@ -1317,4 +1318,49 @@ void duplilist_free_apply_data(DupliApplyData *apply_data)
 {
 	MEM_freeN(apply_data->extra);
 	MEM_freeN(apply_data);
+}
+
+/* mostly a copy from dupli_render_particle_set in convertblender.c */
+void dupli_render_particles_set(Scene *scene, Object *ob, int level, int enable)
+{
+	/* ugly function, but we need to set particle systems to their render
+	 * settings before calling object_duplilist, to get render level duplis */
+	Group *group;
+	GroupObject *go;
+	ParticleSystem *psys;
+	DerivedMesh *dm;
+	float mat[4][4];
+
+	unit_m4(mat);
+
+	if (level >= MAX_DUPLI_RECUR)
+		return;
+
+	if (ob->transflag & OB_DUPLIPARTS) {
+		for (psys = ob->particlesystem.first; psys; psys = psys->next) {
+			if (ELEM(psys->part->ren_as, PART_DRAW_OB, PART_DRAW_GR)) {
+				if (enable)
+					psys_render_set(ob, psys, mat, mat, 1, 1, 0.f);
+				else
+					psys_render_restore(ob, psys);
+			}
+		}
+
+		if (enable) {
+			/* this is to make sure we get render level duplis in groups:
+			 * the derivedmesh must be created before init_render_mesh,
+			 * since object_duplilist does dupliparticles before that */
+			dm = mesh_create_derived_render(scene, ob, CD_MASK_BAREMESH | CD_MASK_MLOOPUV | CD_MASK_MLOOPCOL);
+			dm->release(dm);
+
+			for (psys = ob->particlesystem.first; psys; psys = psys->next)
+				psys_get_modifier(ob, psys)->flag &= ~eParticleSystemFlag_psys_updated;
+		}
+	}
+
+	if (ob->dup_group == NULL) return;
+	group = ob->dup_group;
+
+	for (go = group->gobject.first; go; go = go->next)
+		dupli_render_particles_set(scene, go->ob, level + 1, enable);
 }

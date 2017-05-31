@@ -84,4 +84,5 @@ DupliApplyData *duplilist_apply(struct Object *ob, struct Scene *scene, struct L
 void duplilist_restore(struct ListBase *duplilist, DupliApplyData *apply_data);
 void duplilist_free_apply_data(DupliApplyData *apply_data);
 
+void dupli_render_particles_set(struct Scene *scene, struct Object *ob, int level, int enable);
 #endif
