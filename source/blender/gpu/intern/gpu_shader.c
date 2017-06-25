@@ -267,6 +267,26 @@ GPUShader *GPU_shader_create(const char *vertexcode,
 	                            GPU_SHADER_FLAGS_NONE);
 }
 
+static void gpu_dump_shader(const char **code, const int num_shaders)
+{
+	const char *foldername = "/tmp/";
+	static int i = 0;
+
+	char filename[512] = {'\0'};
+	sprintf(filename, "%s/%04d.shader", foldername, i++);
+
+	FILE *f = fopen(filename, "w");
+	if (f == NULL) {
+		printf("Error writing to file: %s\n", filename);
+	}
+
+	for (int j = 0; j < num_shaders; j++) {
+		fprintf(f, "%s", code[j]);
+	}
+
+	fclose(f);
+}
+
 GPUShader *GPU_shader_create_ex(const char *vertexcode,
                                 const char *fragcode,
                                 const char *geocode,
@@ -325,6 +345,8 @@ GPUShader *GPU_shader_create_ex(const char *vertexcode,
 		if (defines) source[num_source++] = defines;
 		source[num_source++] = vertexcode;
 
+		gpu_dump_shader(source, num_source);
+
 		glAttachShader(shader->program, shader->vertex);
 		glShaderSource(shader->vertex, num_source, source, NULL);
 
@@ -364,6 +386,8 @@ GPUShader *GPU_shader_create_ex(const char *vertexcode,
 		if (libcode) source[num_source++] = libcode;
 		source[num_source++] = fragcode;
 
+		gpu_dump_shader(source, num_source);
+
 		glAttachShader(shader->program, shader->fragment);
 		glShaderSource(shader->fragment, num_source, source, NULL);
 
@@ -389,6 +413,8 @@ GPUShader *GPU_shader_create_ex(const char *vertexcode,
 
 		if (defines) source[num_source++] = defines;
 		source[num_source++] = geocode;
+
+		gpu_dump_shader(source, num_source);
 
 		glAttachShader(shader->program, shader->geometry);
 		glShaderSource(shader->geometry, num_source, source, NULL);
