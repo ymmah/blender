@@ -79,7 +79,7 @@ static uint object_ray_visibility(BL::Object& b_ob)
 	PointerRNA cvisibility = RNA_pointer_get(&b_ob.ptr, "cycles_visibility");
 	uint flag = 0;
 
-	flag |= get_boolean(cvisibility, "camera")? PATH_RAY_CAMERA: 0;
+	flag |= (b_ob.is_visible() && get_boolean(cvisibility, "camera"))? PATH_RAY_CAMERA: 0;
 	flag |= get_boolean(cvisibility, "diffuse")? PATH_RAY_DIFFUSE: 0;
 	flag |= get_boolean(cvisibility, "glossy")? PATH_RAY_GLOSSY: 0;
 	flag |= get_boolean(cvisibility, "transmission")? PATH_RAY_TRANSMIT: 0;
@@ -519,10 +519,6 @@ void BlenderSync::sync_objects(float motion_time)
 	    ++b_dupli_iter)
 	{
 		BL::Object b_ob = b_dupli_iter->object();
-		if(!b_ob.is_visible()) {
-			continue;
-		}
-
 		progress.set_sync_status("Synchronizing object", b_ob.name());
 
 		/* load per-object culling data */

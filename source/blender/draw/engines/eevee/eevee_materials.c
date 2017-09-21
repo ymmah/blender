@@ -33,6 +33,7 @@
 #include "BLI_ghash.h"
 #include "BLI_alloca.h"
 
+#include "BKE_object.h"
 #include "BKE_particle.h"
 #include "BKE_paint.h"
 #include "BKE_pbvh.h"
@@ -1158,6 +1159,8 @@ void EEVEE_materials_cache_populate(EEVEE_Data *vedata, EEVEE_SceneLayerData *sl
 #endif
 	const bool is_default_mode_shader = is_sculpt_mode;
 
+	const bool is_visible = BKE_object_is_visible(ob);
+
 	/* First get materials for this mesh. */
 	if (ELEM(ob->type, OB_MESH)) {
 		const int materials_len = MAX2(1, (is_sculpt_mode_draw ? 1 : ob->totcol));
@@ -1229,12 +1232,14 @@ void EEVEE_materials_cache_populate(EEVEE_Data *vedata, EEVEE_SceneLayerData *sl
 				if (ma == NULL)
 					ma = &defmaterial;
 
-				/* Shading pass */
-				ADD_SHGROUP_CALL(shgrp_array[i], ob, mat_geom[i]);
+				if (is_visible) {
+					/* Shading pass */
+					ADD_SHGROUP_CALL(shgrp_array[i], ob, mat_geom[i]);
 
-				/* Depth Prepass */
-				ADD_SHGROUP_CALL_SAFE(shgrp_depth_array[i], ob, mat_geom[i]);
-				ADD_SHGROUP_CALL_SAFE(shgrp_depth_clip_array[i], ob, mat_geom[i]);
+					/* Depth Prepass */
+					ADD_SHGROUP_CALL_SAFE(shgrp_depth_array[i], ob, mat_geom[i]);
+					ADD_SHGROUP_CALL_SAFE(shgrp_depth_clip_array[i], ob, mat_geom[i]);
+				}
 
 				/* Shadow Pass */
 				if (ma->use_nodes && ma->nodetree && (ma->blend_method != MA_BM_SOLID)) {
@@ -1263,7 +1268,7 @@ void EEVEE_materials_cache_populate(EEVEE_Data *vedata, EEVEE_SceneLayerData *sl
 		}
 	}
 
-	if (ob->type == OB_MESH) {
+	if (is_visible && (ob->type == OB_MESH)) {
 		if (ob != draw_ctx->scene->obedit) {
 			material_hash = stl->g_data->hair_material_hash;
 

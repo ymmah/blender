@@ -29,8 +29,6 @@
 #include "BLI_dynstr.h"
 #include "BLI_rand.h"
 
-#include "BKE_object.h"
-
 #include "GPU_material.h"
 #include "GPU_glew.h"
 
@@ -95,10 +93,6 @@ static void EEVEE_cache_populate(void *vedata, Object *ob)
 	}
 
 	if (ELEM(ob->type, OB_MESH)) {
-		if (!BKE_object_is_visible(ob)) {
-			return;
-		}
-
 		EEVEE_materials_cache_populate(vedata, sldata, ob);
 
 		const bool cast_shadow = true;
