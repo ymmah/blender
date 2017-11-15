@@ -329,7 +329,7 @@ void do_versions_after_linking_280(Main *main)
 
 						/* Add new collection bases. */
 						for (int layer = 0; layer < 20; layer++) {
-							if ((scene->lay & srl->lay & ~(srl->lay_exclude) & (1 << layer)) ||
+							if ((scene->lay & ~(srl->lay_exclude) & (1 << layer)) ||
 								(srl->lay_zmask & (scene->lay | srl->lay_exclude) & (1 << layer)))
 							{
 								if (collections[DO_VERSION_COLLECTION_VISIBLE].created & (1 << layer)) {
@@ -344,6 +344,14 @@ void do_versions_after_linking_280(Main *main)
 													ID_OB,
 													"cycles.is_holdout",
 													true);
+									}
+
+									if ((srl->lay & (1 << layer)) == 0) {
+										BKE_override_layer_collection_boolean_add(
+													layer_collection_parent,
+													ID_OB,
+													"cycles_visibility.camera",
+													false);
 									}
 
 									LayerCollection *layer_collection_child;
