@@ -324,6 +324,28 @@ void do_versions_after_linking_280(Main *main)
 							            (ID *)srl->mat_override);
 						}
 
+						if (srl->layflag & SCE_LAY_DISABLE) {
+							scene_layer->flag &= ~SCENE_LAYER_RENDER;
+						}
+
+						if ((srl->layflag & SCE_LAY_FRS) == 0) {
+							scene_layer->flag &= ~SCENE_LAYER_FREESTYLE;
+						}
+
+						/* XXX If we are to keep layflag it should be merged with flag (dfelinto). */
+						scene_layer->layflag = srl->layflag;
+						/* XXX Not sure if we should keep the passes (dfelinto). */
+						scene_layer->passflag = srl->passflag;
+						scene_layer->pass_xor = srl->pass_xor;
+						scene_layer->pass_alpha_threshold = srl->pass_alpha_threshold;
+
+						scene_layer->freestyleConfig = srl->freestyleConfig;
+						BLI_listbase_clear(&srl->freestyleConfig.modules);
+						BLI_listbase_clear(&srl->freestyleConfig.linesets);
+
+						scene_layer->id_properties = srl->prop;
+						srl->prop = NULL;
+
 						/* unlink master collection  */
 						BKE_collection_unlink(scene_layer, scene_layer->layer_collections.first);
 
@@ -383,8 +405,6 @@ void do_versions_after_linking_280(Main *main)
 								base->flag |= BASE_SELECTED;
 							}
 						}
-
-						/* TODO: passes, samples, mask_layesr, exclude, ... */
 					}
 
 					if (BLI_findlink(&scene->render_layers, scene->r.actlay)) {

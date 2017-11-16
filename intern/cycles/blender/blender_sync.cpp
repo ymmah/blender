@@ -382,19 +382,17 @@ void BlenderSync::sync_render_layers(BL::SpaceView3D& b_v3d, const char *layer)
 
 	/* 3d view */
 	if(b_v3d) {
-		BL::RenderLayers layers(b_scene.render().ptr);
-		layername = layers.active().name();
+		layername = b_scene.render_layers.active().name();
 		layer = layername.c_str();
 	}
 
 	/* render layer */
-	BL::RenderSettings r = b_scene.render();
-	BL::RenderSettings::layers_iterator b_rlay;
+	BL::Scene::render_layers_iterator b_rlay;
 	bool first_layer = true;
 	uint layer_override = get_layer(b_engine.layer_override());
 	uint scene_layers = layer_override ? layer_override : get_layer(b_scene.layers());
 
-	for(r.layers.begin(b_rlay); b_rlay != r.layers.end(); ++b_rlay) {
+	for(b_scene.render_layers.begin(b_rlay); b_rlay != b_scene.render_layers.end(); ++b_rlay) {
 		if((!layer && first_layer) || (layer && b_rlay->name() == layer)) {
 			render_layer.name = b_rlay->name();
 
@@ -525,7 +523,7 @@ int BlenderSync::get_denoising_pass(BL::RenderPass& b_pass)
 }
 
 array<Pass> BlenderSync::sync_render_passes(BL::RenderLayer& b_rlay,
-                                            BL::SceneRenderLayer& b_srlay,
+                                            BL::SceneLayer& b_slay,
                                             const SessionParams &session_params)
 {
 	array<Pass> passes;
@@ -548,36 +546,36 @@ array<Pass> BlenderSync::sync_render_passes(BL::RenderLayer& b_rlay,
 			Pass::add(pass_type, passes);
 	}
 
-	PointerRNA crp = RNA_pointer_get(&b_srlay.ptr, "cycles");
+	PointerRNA crp = RNA_pointer_get(&b_slay.ptr, "cycles");
 	if(get_boolean(crp, "denoising_store_passes") &&
 	   get_boolean(crp, "use_denoising"))
 	{
-		b_engine.add_pass("Denoising Normal",          3, "XYZ", b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Normal Variance", 3, "XYZ", b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Albedo",          3, "RGB", b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Albedo Variance", 3, "RGB", b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Depth",           1, "Z",   b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Depth Variance",  1, "Z",   b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Shadow A",        3, "XYV", b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Shadow B",        3, "XYV", b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Image",           3, "RGB", b_srlay.name().c_str());
-		b_engine.add_pass("Denoising Image Variance",  3, "RGB", b_srlay.name().c_str());
+		b_engine.add_pass("Denoising Normal",          3, "XYZ", b_slay.name().c_str());
+		b_engine.add_pass("Denoising Normal Variance", 3, "XYZ", b_slay.name().c_str());
+		b_engine.add_pass("Denoising Albedo",          3, "RGB", b_slay.name().c_str());
+		b_engine.add_pass("Denoising Albedo Variance", 3, "RGB", b_slay.name().c_str());
+		b_engine.add_pass("Denoising Depth",           1, "Z",   b_slay.name().c_str());
+		b_engine.add_pass("Denoising Depth Variance",  1, "Z",   b_slay.name().c_str());
+		b_engine.add_pass("Denoising Shadow A",        3, "XYV", b_slay.name().c_str());
+		b_engine.add_pass("Denoising Shadow B",        3, "XYV", b_slay.name().c_str());
+		b_engine.add_pass("Denoising Image",           3, "RGB", b_slay.name().c_str());
+		b_engine.add_pass("Denoising Image Variance",  3, "RGB", b_slay.name().c_str());
 	}
 #ifdef __KERNEL_DEBUG__
 	if(get_boolean(crp, "pass_debug_bvh_traversed_nodes")) {
-		b_engine.add_pass("Debug BVH Traversed Nodes", 1, "X", b_srlay.name().c_str());
+		b_engine.add_pass("Debug BVH Traversed Nodes", 1, "X", b_slay.name().c_str());
 		Pass::add(PASS_BVH_TRAVERSED_NODES, passes);
 	}
 	if(get_boolean(crp, "pass_debug_bvh_traversed_instances")) {
-		b_engine.add_pass("Debug BVH Traversed Instances", 1, "X", b_srlay.name().c_str());
+		b_engine.add_pass("Debug BVH Traversed Instances", 1, "X", b_slay.name().c_str());
 		Pass::add(PASS_BVH_TRAVERSED_INSTANCES, passes);
 	}
 	if(get_boolean(crp, "pass_debug_bvh_intersections")) {
-		b_engine.add_pass("Debug BVH Intersections", 1, "X", b_srlay.name().c_str());
+		b_engine.add_pass("Debug BVH Intersections", 1, "X", b_slay.name().c_str());
 		Pass::add(PASS_BVH_INTERSECTIONS, passes);
 	}
 	if(get_boolean(crp, "pass_debug_ray_bounces")) {
-		b_engine.add_pass("Debug Ray Bounces", 1, "X", b_srlay.name().c_str());
+		b_engine.add_pass("Debug Ray Bounces", 1, "X", b_slay.name().c_str());
 		Pass::add(PASS_RAY_BOUNCES, passes);
 	}
 #endif
@@ -807,8 +805,8 @@ SessionParams BlenderSync::get_session_params(BL::RenderEngine& b_engine,
 	                            !b_r.use_save_buffers();
 
 	if(params.progressive_refine) {
-		BL::RenderSettings::layers_iterator b_rlay;
-		for(b_r.layers.begin(b_rlay); b_rlay != b_r.layers.end(); ++b_rlay) {
+		BL::Scene::render_layers_iterator b_rlay;
+		for(b_scene.render_layers.begin(b_rlay); b_rlay != b_scene.render_layers.end(); ++b_rlay) {
 			PointerRNA crl = RNA_pointer_get(&b_rlay->ptr, "cycles");
 			if(get_boolean(crl, "use_denoising")) {
 				params.progressive_refine = false;

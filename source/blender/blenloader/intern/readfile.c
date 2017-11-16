@@ -5934,6 +5934,16 @@ static void lib_link_scene(FileData *fd, Main *main)
 			for (SceneLayer *scene_layer = sce->render_layers.first; scene_layer; scene_layer = scene_layer->next) {
 				/* tag scene layer to update for collection tree evaluation */
 				scene_layer->flag |= SCENE_LAYER_ENGINE_DIRTY;
+
+				for (FreestyleModuleConfig *fmc = scene_layer->freestyleConfig.modules.first; fmc; fmc = fmc->next) {
+					fmc->script = newlibadr(fd, sce->id.lib, fmc->script);
+				}
+
+				for (FreestyleLineSet *fls = scene_layer->freestyleConfig.linesets.first; fls; fls = fls->next) {
+					fls->linestyle = newlibadr_us(fd, sce->id.lib, fls->linestyle);
+					fls->group = newlibadr_us(fd, sce->id.lib, fls->group);
+				}
+
 				for (Base *base = scene_layer->object_bases.first; base; base = base->next) {
 					/* we only bump the use count for the collection objects */
 					base->object = newlibadr(fd, sce->id.lib, base->object);
@@ -9809,7 +9819,22 @@ static void expand_scene(FileData *fd, Main *mainvar, Scene *sce)
 			expand_doit(fd, mainvar, lineset->linestyle);
 		}
 	}
-	
+
+	for (SceneLayer *scene_layer = sce->render_layers.first; scene_layer; scene_layer = scene_layer->next) {
+		for (module = scene_layer->freestyleConfig.modules.first; module; module = module->next) {
+			if (module->script) {
+				expand_doit(fd, mainvar, module->script);
+			}
+		}
+
+		for (lineset = scene_layer->freestyleConfig.linesets.first; lineset; lineset = lineset->next) {
+			if (lineset->group) {
+				expand_doit(fd, mainvar, lineset->group);
+			}
+			expand_doit(fd, mainvar, lineset->linestyle);
+		}
+	}
+
 	if (sce->r.dometext)
 		expand_doit(fd, mainvar, sce->gm.dome.warptext);
 	
