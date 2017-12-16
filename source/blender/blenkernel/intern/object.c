@@ -684,6 +684,7 @@ void BKE_object_init(Object *ob)
 	ob->col_group = 0x01;
 	ob->col_mask = 0xffff;
 	ob->preview = NULL;
+	ob->dupli_visibility_flag = OB_DUPLI_FLAG_VIEWPORT | OB_DUPLI_FLAG_RENDER;
 
 	/* NT fluid sim defaults */
 	ob->fluidsimSettings = NULL;

@@ -278,6 +278,13 @@ class OBJECT_PT_display(ObjectButtonsPanel, Panel):
             col.label(text="Object Color:")
             col.prop(obj, "color", text="")
 
+        if is_dupli:
+            col = layout.column()
+            col.label(text="Duplicator Visibility:")
+            row = col.row(align=True)
+            row.prop(obj, "show_duplicator_for_viewport", text="Viewport")
+            row.prop(obj, "show_duplicator_for_render", text="Render")
+
 
 class OBJECT_PT_duplication(ObjectButtonsPanel, Panel):
     bl_label = "Duplication"
