@@ -232,7 +232,7 @@ static void rna_Object_hide_update(Main *bmain, Scene *UNUSED(scene), PointerRNA
 static int rna_Object_is_visible_get(PointerRNA *ptr)
 {
 	Object *ob = ptr->id.data;
-	return BKE_object_is_visible(ob);
+	return (ob->base_flag & BASE_VISIBLED) != 0;
 }
 
 static void rna_Object_collection_properties_begin(CollectionPropertyIterator *iter, PointerRNA *ptr)

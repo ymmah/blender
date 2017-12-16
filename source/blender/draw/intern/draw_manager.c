@@ -2214,7 +2214,7 @@ bool DRW_object_is_renderable(Object *ob)
 	Scene *scene = DST.draw_ctx.scene;
 	Object *obedit = scene->obedit;
 
-	BLI_assert(BKE_object_is_visible(ob));
+	BLI_assert(BKE_object_is_visible(ob, DRW_state_is_scene_render()));
 
 	if (ob->type == OB_MESH) {
 		if (ob == obedit) {

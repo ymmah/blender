@@ -1648,7 +1648,7 @@ static void DRW_shgroup_lightprobe(OBJECT_StorageList *stl, OBJECT_PassList *psl
 
 static void DRW_shgroup_relationship_lines(OBJECT_StorageList *stl, Object *ob)
 {
-	if (ob->parent && BKE_object_is_visible(ob->parent)) {
+	if (ob->parent && BKE_object_is_visible(ob->parent, DRW_state_is_scene_render())) {
 		DRW_shgroup_call_dynamic_add(stl->g_data->relationship_lines, ob->obmat[3]);
 		DRW_shgroup_call_dynamic_add(stl->g_data->relationship_lines, ob->parent->obmat[3]);
 	}
