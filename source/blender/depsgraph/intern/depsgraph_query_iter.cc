@@ -177,10 +177,9 @@ void DEG_iterator_objects_begin(BLI_Iterator *iter, DEGObjectIterData *data)
 	}
 
 	/* TODO(sergey): What evaluation type we want here? */
-	/** For now let's use viewport, until we can get this from depsgraph.
-	 *  Otherwise it will fail for visibility tests with dupli_visibility_flag
-	 *  for the viewport. -- (dfelinto)
-	 */
+	/* TODO(dfelinto): Get rid of evaluation context here, it's only used to do
+	 * direct dupli-objects update in group.c. Which is terribly bad, and all
+	 * objects are expected to be evaluated already. */
 	DEG_evaluation_context_init(&data->eval_ctx, DAG_EVAL_VIEWPORT);
 	data->eval_ctx.view_layer = DEG_get_evaluated_view_layer(depsgraph);
 
