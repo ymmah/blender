@@ -565,10 +565,10 @@ bool BKE_object_is_visible(Object *ob, const bool is_render)
 	}
 	else {
 		if (is_render) {
-			return ((ob->dupli_visibility_flag & OB_DUPLI_FLAG_RENDER) != 0);
+			return ((ob->duplicator_visibility_flag & OB_DUPLI_FLAG_RENDER) != 0);
 		}
 		else {
-			return ((ob->dupli_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) != 0);
+			return ((ob->duplicator_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) != 0);
 		}
 	}
 }
@@ -698,7 +698,7 @@ void BKE_object_init(Object *ob)
 	ob->col_group = 0x01;
 	ob->col_mask = 0xffff;
 	ob->preview = NULL;
-	ob->dupli_visibility_flag = OB_DUPLI_FLAG_VIEWPORT | OB_DUPLI_FLAG_RENDER;
+	ob->duplicator_visibility_flag = OB_DUPLI_FLAG_VIEWPORT | OB_DUPLI_FLAG_RENDER;
 
 	/* NT fluid sim defaults */
 	ob->fluidsimSettings = NULL;

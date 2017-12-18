@@ -857,9 +857,9 @@ void blo_do_versions_280(FileData *fd, Library *UNUSED(lib), Main *main)
 	}
 
 	{
-		if (!DNA_struct_elem_find(fd->filesdna, "Object", "char", "dupli_visibility_flag")) {
+		if (!DNA_struct_elem_find(fd->filesdna, "Object", "char", "duplicator_visibility_flag")) {
 			for (Object *object = main->object.first; object; object = object->id.next) {
-				object->dupli_visibility_flag = OB_DUPLI_FLAG_VIEWPORT | OB_DUPLI_FLAG_RENDER;
+				object->duplicator_visibility_flag = OB_DUPLI_FLAG_VIEWPORT | OB_DUPLI_FLAG_RENDER;
 			}
 		}
 	}

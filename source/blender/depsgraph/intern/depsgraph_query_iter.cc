@@ -150,12 +150,12 @@ static void DEG_iterator_objects_step(EvaluationContext *eval_ctx, BLI_Iterator 
 		data->dupli_object_next = (DupliObject *)data->dupli_list->first;
 
 		if (eval_ctx->mode == DAG_EVAL_VIEWPORT) {
-			if ((object->dupli_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) == 0) {
+			if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) == 0) {
 				return;
 			}
 		}
 		else {
-			if ((object->dupli_visibility_flag & OB_DUPLI_FLAG_RENDER) == 0) {
+			if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_RENDER) == 0) {
 				return;
 			}
 		}

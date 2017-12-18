@@ -208,7 +208,7 @@ typedef struct Object {
 
 	/* did last modifier stack generation need mapping support? */
 	char lastNeedMapping;  /* bool */
-	char dupli_visibility_flag;
+	char duplicator_visibility_flag;
 
 	/* dupli-frame settings */
 	int dupon, dupoff, dupsta, dupend;
@@ -708,7 +708,7 @@ enum {
 	OB_LOCK_ROT4D   = 1 << 10,
 };
 
-/* ob->dupli_visibility_flag */
+/* ob->duplicator_visibility_flag */
 enum {
 	OB_DUPLI_FLAG_VIEWPORT = 1 << 0,
 	OB_DUPLI_FLAG_RENDER   = 1 << 1,
