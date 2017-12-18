@@ -105,7 +105,7 @@ static bool deg_objects_dupli_iterator_next(BLI_Iterator *iter)
 	return false;
 }
 
-static void DEG_iterator_objects_step(EvaluationContext *eval_ctx, BLI_Iterator *iter, DEG::IDDepsNode *id_node)
+static void DEG_iterator_objects_step(BLI_Iterator *iter, DEG::IDDepsNode *id_node)
 {
 	/* Set it early in case we need to exit and we are running from within a loop. */
 	iter->skip = true;
@@ -149,15 +149,17 @@ static void DEG_iterator_objects_step(EvaluationContext *eval_ctx, BLI_Iterator 
 		data->dupli_list = object_duplilist(&data->eval_ctx, data->scene, object);
 		data->dupli_object_next = (DupliObject *)data->dupli_list->first;
 
-		if (eval_ctx->mode == DAG_EVAL_VIEWPORT) {
-			if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) == 0) {
-				return;
-			}
-		}
-		else {
-			if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_RENDER) == 0) {
-				return;
-			}
+		switch (data->mode) {
+			case DEG_ITER_OBJECT_MODE_VIEWPORT:
+				if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) == 0) {
+					return;
+				}
+				break;
+			case DEG_ITER_OBJECT_MODE_RENDER:
+				if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_RENDER) == 0) {
+					return;
+				}
+				break;
 		}
 	}
 
@@ -193,7 +195,7 @@ void DEG_iterator_objects_begin(BLI_Iterator *iter, DEGObjectIterData *data)
 	data->num_id_nodes = num_id_nodes;
 
 	DEG::IDDepsNode *id_node = deg_graph->id_nodes[data->id_node_index];
-	DEG_iterator_objects_step(&data->eval_ctx, iter, id_node);
+	DEG_iterator_objects_step(iter, id_node);
 
 	if (iter->skip) {
 		DEG_iterator_objects_next(iter);
@@ -227,7 +229,7 @@ void DEG_iterator_objects_next(BLI_Iterator *iter)
 		}
 
 		DEG::IDDepsNode *id_node = deg_graph->id_nodes[data->id_node_index];
-		DEG_iterator_objects_step(&data->eval_ctx, iter, id_node);
+		DEG_iterator_objects_step(iter, id_node);
 	} while (iter->skip);
 }
 

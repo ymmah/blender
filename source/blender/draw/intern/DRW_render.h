@@ -432,6 +432,8 @@ bool DRW_state_is_scene_render(void);
 bool DRW_state_show_text(void);
 bool DRW_state_draw_support(void);
 
+enum eDepsObjectIteratorMode DRW_iterator_mode_get(void);
+
 struct DRWTextStore *DRW_state_text_cache_get(void);
 
 /* Avoid too many lookups while drawing */

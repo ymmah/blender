@@ -3402,7 +3402,7 @@ void DRW_draw_render_loop_ex(
 		PROFILE_START(stime);
 		drw_engines_cache_init();
 
-		DEG_OBJECT_ITER_FOR_RENDER_ENGINE(graph, ob)
+		DEG_OBJECT_ITER_FOR_RENDER_ENGINE(graph, ob, DRW_iterator_mode_get())
 		{
 			drw_engines_cache_populate(ob);
 		}
@@ -3615,7 +3615,7 @@ void DRW_draw_select_loop(
 			drw_engines_cache_populate(scene->obedit);
 		}
 		else {
-			DEG_OBJECT_ITER(graph, ob,
+			DEG_OBJECT_ITER(graph, ob, DRW_iterator_mode_get(),
 			                DEG_ITER_OBJECT_FLAG_LINKED_DIRECTLY |
 			                DEG_ITER_OBJECT_FLAG_VISIBLE |
 			                DEG_ITER_OBJECT_FLAG_DUPLI)
@@ -3710,7 +3710,7 @@ void DRW_draw_depth_loop(
 	if (cache_is_dirty) {
 		drw_engines_cache_init();
 
-		DEG_OBJECT_ITER_FOR_RENDER_ENGINE(graph, ob)
+		DEG_OBJECT_ITER_FOR_RENDER_ENGINE(graph, ob, DRW_iterator_mode_get())
 		{
 			drw_engines_cache_populate(ob);
 		}
@@ -3793,6 +3793,15 @@ bool DRW_state_is_scene_render(void)
 	BLI_assert(DST.options.is_scene_render ?
 	           DST.options.is_image_render : true);
 	return DST.options.is_scene_render;
+}
+
+/**
+ * Gives you the iterator mode to use for depsgraph.
+ */
+eDepsObjectIteratorMode DRW_iterator_mode_get(void)
+{
+	return DRW_state_is_scene_render() ? DEG_ITER_OBJECT_MODE_RENDER :
+	                                     DEG_ITER_OBJECT_MODE_VIEWPORT;
 }
 
 /**
