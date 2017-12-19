@@ -113,6 +113,10 @@ static void eevee_cache_populate(void *vedata, Object *ob)
 		}
 	}
 
+	if (DRW_object_duplicator_visibility_get(ob) == false) {
+		return;
+	}
+
 	if (ELEM(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
 		EEVEE_materials_cache_populate(vedata, sldata, ob);
 

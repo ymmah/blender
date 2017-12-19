@@ -2233,6 +2233,27 @@ bool DRW_object_is_renderable(Object *ob)
 	return true;
 }
 
+/**
+ * Return whether this object should be visible.
+ *
+ * If object is not a duplicator, return true.
+ */
+bool DRW_object_duplicator_visibility_get(Object *ob)
+{
+	if (((ob->transflag & OB_DUPLI) == 0) &&
+	    (ob->particlesystem.first == NULL))
+	{
+		return true;
+	}
+
+	if (DRW_state_is_scene_render()) {
+		return (ob->duplicator_visibility_flag & OB_DUPLI_FLAG_RENDER) != 0;
+	}
+	else {
+		return (ob->duplicator_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) != 0;
+	}
+}
+
 bool DRW_object_is_flat_normal(const Object *ob)
 {
 	if (ob->type == OB_MESH) {

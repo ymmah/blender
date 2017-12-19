@@ -764,7 +764,40 @@ static void clay_cache_populate(void *vedata, Object *ob)
 		}
 	}
 
+	/* Handle particles first in case the emitter itself shouldn't be rendered. */
+	if (ob->type == OB_MESH) {
+		Scene *scene = draw_ctx->scene;
+		Object *obedit = scene->obedit;
+
+		if (ob != obedit) {
+			for (ParticleSystem *psys = ob->particlesystem.first; psys; psys = psys->next) {
+				if (psys_check_enabled(ob, psys, false)) {
+					ParticleSettings *part = psys->part;
+					int draw_as = (part->draw_as == PART_DRAW_REND) ? part->ren_as : part->draw_as;
+
+					if (draw_as == PART_DRAW_PATH && !psys->pathcache && !psys->childcache) {
+						draw_as = PART_DRAW_DOT;
+					}
+
+					static float mat[4][4];
+					unit_m4(mat);
+
+					if (draw_as == PART_DRAW_PATH) {
+						struct Gwn_Batch *geom = DRW_cache_particles_get_hair(psys, NULL);
+						hair_shgrp = CLAY_hair_shgrp_get(vedata, ob, stl, psl);
+						DRW_shgroup_call_add(hair_shgrp, geom, mat);
+					}
+				}
+			}
+		}
+	}
+
+	if (DRW_object_duplicator_visibility_get(ob) == false) {
+		return;
+	}
+
 	struct Gwn_Batch *geom = DRW_cache_object_surface_get(ob);
+
 	if (geom) {
 		IDProperty *ces_mode_ob = BKE_layer_collection_engine_evaluated_get(ob, COLLECTION_MODE_OBJECT, "");
 		const bool do_cull = BKE_collection_engine_property_value_get_bool(ces_mode_ob, "show_backface_culling");
@@ -795,33 +828,6 @@ static void clay_cache_populate(void *vedata, Object *ob)
 		}
 		else {
 			DRW_shgroup_call_add(clay_shgrp, geom, ob->obmat);
-		}
-	}
-
-	if (ob->type == OB_MESH) {
-		Scene *scene = draw_ctx->scene;
-		Object *obedit = scene->obedit;
-
-		if (ob != obedit) {
-			for (ParticleSystem *psys = ob->particlesystem.first; psys; psys = psys->next) {
-				if (psys_check_enabled(ob, psys, false)) {
-					ParticleSettings *part = psys->part;
-					int draw_as = (part->draw_as == PART_DRAW_REND) ? part->ren_as : part->draw_as;
-
-					if (draw_as == PART_DRAW_PATH && !psys->pathcache && !psys->childcache) {
-						draw_as = PART_DRAW_DOT;
-					}
-
-					static float mat[4][4];
-					unit_m4(mat);
-
-					if (draw_as == PART_DRAW_PATH) {
-						geom = DRW_cache_particles_get_hair(psys, NULL);
-						hair_shgrp = CLAY_hair_shgrp_get(vedata, ob, stl, psl);
-						DRW_shgroup_call_add(hair_shgrp, geom, mat);
-					}
-				}
-			}
 		}
 	}
 }

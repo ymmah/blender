@@ -278,7 +278,7 @@ class OBJECT_PT_display(ObjectButtonsPanel, Panel):
             col.label(text="Object Color:")
             col.prop(obj, "color", text="")
 
-        if is_dupli:
+        if is_dupli or len(obj.particle_systems):
             col = layout.column()
             col.label(text="Duplicator Visibility:")
             row = col.row(align=True)
