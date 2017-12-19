@@ -871,6 +871,9 @@ void blo_do_versions_280(FileData *fd, Library *UNUSED(lib), Main *main)
 						object->duplicator_visibility_flag |= OB_DUPLI_FLAG_RENDER;
 					}
 				}
+				else if (object->transflag & OB_DUPLI){
+					object->duplicator_visibility_flag = OB_DUPLI_FLAG_VIEWPORT;
+				}
 				else {
 					object->duplicator_visibility_flag = OB_DUPLI_FLAG_VIEWPORT | OB_DUPLI_FLAG_RENDER;
 				}

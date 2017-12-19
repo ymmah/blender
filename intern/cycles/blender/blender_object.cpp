@@ -485,12 +485,11 @@ static bool object_render_hide(BL::Object& b_ob,
 	if(has_particles) {
 		show_emitter = b_ob.show_duplicator_for_render();
 		hide_emitter = !show_emitter;
-	}
-
-	/* duplicators hidden by default, except dupliframes which duplicate self */
-	if(b_ob.is_duplicator())
-		if(top_level || b_ob.dupli_type() != BL::Object::dupli_type_FRAMES)
+	} else if(b_ob.is_duplicator()) {
+		if(top_level || b_ob.show_duplicator_for_render()) {
 			hide_as_dupli_parent = true;
+		}
+	}
 
 	/* hide original object for duplis */
 	BL::Object parent = b_ob.parent();
