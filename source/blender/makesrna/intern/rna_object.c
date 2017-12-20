@@ -232,6 +232,10 @@ static void rna_Object_hide_update(Main *bmain, Scene *UNUSED(scene), PointerRNA
 static int rna_Object_is_visible_get(PointerRNA *ptr)
 {
 	Object *ob = ptr->id.data;
+
+	/* For duplicators, the object visibility depends on whether we are
+	 * rendering or not, which can't know from here. So instead of using the
+	 * complete BKE_object_is_visible we just check the base visibility. */
 	return (ob->base_flag & BASE_VISIBLED) != 0;
 }
 
