@@ -746,12 +746,45 @@ static void clay_cache_init(void *vedata)
 	}
 }
 
+static void clay_cache_populate_particles(void *vedata, Object *ob)
+{
+	CLAY_PassList *psl = ((CLAY_Data *)vedata)->psl;
+	CLAY_StorageList *stl = ((CLAY_Data *)vedata)->stl;
+	const DRWContextState *draw_ctx = DRW_context_state_get();
+
+
+	Scene *scene = draw_ctx->scene;
+	Object *obedit = scene->obedit;
+
+	if (ob != obedit) {
+		for (ParticleSystem *psys = ob->particlesystem.first; psys; psys = psys->next) {
+			if (psys_check_enabled(ob, psys, false)) {
+				ParticleSettings *part = psys->part;
+				int draw_as = (part->draw_as == PART_DRAW_REND) ? part->ren_as : part->draw_as;
+
+				if (draw_as == PART_DRAW_PATH && !psys->pathcache && !psys->childcache) {
+					draw_as = PART_DRAW_DOT;
+				}
+
+				static float mat[4][4];
+				unit_m4(mat);
+
+				if (draw_as == PART_DRAW_PATH) {
+					struct Gwn_Batch *geom = DRW_cache_particles_get_hair(psys, NULL);
+					DRWShadingGroup *hair_shgrp = CLAY_hair_shgrp_get(vedata, ob, stl, psl);
+					DRW_shgroup_call_add(hair_shgrp, geom, mat);
+				}
+			}
+		}
+	}
+}
+
 static void clay_cache_populate(void *vedata, Object *ob)
 {
 	CLAY_PassList *psl = ((CLAY_Data *)vedata)->psl;
 	CLAY_StorageList *stl = ((CLAY_Data *)vedata)->stl;
 
-	DRWShadingGroup *clay_shgrp, *hair_shgrp;
+	DRWShadingGroup *clay_shgrp;
 
 	if (!DRW_object_is_renderable(ob))
 		return;
@@ -766,30 +799,7 @@ static void clay_cache_populate(void *vedata, Object *ob)
 
 	/* Handle particles first in case the emitter itself shouldn't be rendered. */
 	if (ob->type == OB_MESH) {
-		Scene *scene = draw_ctx->scene;
-		Object *obedit = scene->obedit;
-
-		if (ob != obedit) {
-			for (ParticleSystem *psys = ob->particlesystem.first; psys; psys = psys->next) {
-				if (psys_check_enabled(ob, psys, false)) {
-					ParticleSettings *part = psys->part;
-					int draw_as = (part->draw_as == PART_DRAW_REND) ? part->ren_as : part->draw_as;
-
-					if (draw_as == PART_DRAW_PATH && !psys->pathcache && !psys->childcache) {
-						draw_as = PART_DRAW_DOT;
-					}
-
-					static float mat[4][4];
-					unit_m4(mat);
-
-					if (draw_as == PART_DRAW_PATH) {
-						struct Gwn_Batch *geom = DRW_cache_particles_get_hair(psys, NULL);
-						hair_shgrp = CLAY_hair_shgrp_get(vedata, ob, stl, psl);
-						DRW_shgroup_call_add(hair_shgrp, geom, mat);
-					}
-				}
-			}
-		}
+		clay_cache_populate_particles(vedata, ob);
 	}
 
 	if (DRW_object_duplicator_visibility_get(ob) == false) {
