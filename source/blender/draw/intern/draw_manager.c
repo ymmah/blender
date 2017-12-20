@@ -2234,6 +2234,15 @@ bool DRW_object_is_renderable(Object *ob)
 }
 
 /**
+ * Return whether this object is visible depending if
+ * we are rendering or drawing in the viewport.
+ */
+bool DRW_check_object_visible_within_active_context(Object *ob)
+{
+	return BKE_object_is_visible(ob, DRW_state_is_scene_render());
+}
+
+/**
  * Return whether this object should be visible.
  *
  * If object is not a duplicator, return true.
