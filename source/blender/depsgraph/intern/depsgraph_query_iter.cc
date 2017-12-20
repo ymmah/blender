@@ -138,7 +138,7 @@ static void DEG_iterator_objects_step(BLI_Iterator *iter, DEG::IDDepsNode *id_no
 	Object *object = (Object *)id_node->id_cow;
 	BLI_assert(DEG::deg_validate_copy_on_write_datablock(&object->id));
 
-	if (((object->base_flag & BASE_VISIBLED) == false) &&
+	if ((BKE_object_is_visible(object, false, false) == false) &&
 	    ((data->flag & DEG_ITER_OBJECT_FLAG_VISIBLE) != 0))
 	{
 		return;
@@ -149,17 +149,8 @@ static void DEG_iterator_objects_step(BLI_Iterator *iter, DEG::IDDepsNode *id_no
 		data->dupli_list = object_duplilist(&data->eval_ctx, data->scene, object);
 		data->dupli_object_next = (DupliObject *)data->dupli_list->first;
 
-		switch (data->mode) {
-			case DEG_ITER_OBJECT_MODE_VIEWPORT:
-				if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_VIEWPORT) == 0) {
-					return;
-				}
-				break;
-			case DEG_ITER_OBJECT_MODE_RENDER:
-				if ((object->duplicator_visibility_flag & OB_DUPLI_FLAG_RENDER) == 0) {
-					return;
-				}
-				break;
+		if (BKE_object_is_visible(object, true, data->mode == DEG_ITER_OBJECT_MODE_RENDER) == false) {
+			return;
 		}
 	}
 

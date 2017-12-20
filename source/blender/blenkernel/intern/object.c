@@ -552,12 +552,15 @@ bool BKE_object_is_in_wpaint_select_vert(Object *ob)
 
 /**
  * Return if the object is visible, as evaluated by depsgraph
- * Keep in sync with rna_object.c (object.is_visible).
  */
-bool BKE_object_is_visible(Object *ob, const bool is_render)
+bool BKE_object_is_visible(Object *ob, const bool check_dupli, const bool is_render)
 {
 	if ((ob->base_flag & BASE_VISIBLED) == 0) {
 		return false;
+	}
+
+	if (check_dupli == false) {
+		return true;
 	}
 
 	if ((ob->transflag & OB_DUPLI) == 0) {

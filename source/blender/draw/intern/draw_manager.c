@@ -2214,7 +2214,7 @@ bool DRW_object_is_renderable(Object *ob)
 	Scene *scene = DST.draw_ctx.scene;
 	Object *obedit = scene->obedit;
 
-	BLI_assert(BKE_object_is_visible(ob, DRW_state_is_scene_render()));
+	BLI_assert(BKE_object_is_visible(ob, true, DRW_state_is_scene_render()));
 
 	if (ob->type == OB_MESH) {
 		if (ob == obedit) {
@@ -2239,7 +2239,7 @@ bool DRW_object_is_renderable(Object *ob)
  */
 bool DRW_check_object_visible_within_active_context(Object *ob)
 {
-	return BKE_object_is_visible(ob, DRW_state_is_scene_render());
+	return BKE_object_is_visible(ob, true, DRW_state_is_scene_render());
 }
 
 /**
