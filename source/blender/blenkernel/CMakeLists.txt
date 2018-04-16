@@ -489,18 +489,6 @@ if(WITH_LZMA)
 	add_definitions(-DWITH_LZMA)
 endif()
 
-if(WITH_GAMEENGINE)
-	list(APPEND INC_SYS
-		../../../extern/recastnavigation
-	)
-	list(APPEND SRC
-		intern/navmesh_conversion.c
-		BKE_navmesh_conversion.h
-	)
-
-	add_definitions(-DWITH_GAMEENGINE)
-endif()
-
 if(WITH_LIBMV)
 	add_definitions(-DWITH_LIBMV)
 endif()

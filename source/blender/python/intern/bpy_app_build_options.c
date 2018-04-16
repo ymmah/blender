@@ -140,12 +140,6 @@ static PyObject *make_builtopts_info(void)
 	SetObjIncref(Py_False);
 #endif
 
-#ifdef WITH_GAMEENGINE
-	SetObjIncref(Py_True);
-#else
-	SetObjIncref(Py_False);
-#endif
-
 #ifdef WITH_CINEON
 	SetObjIncref(Py_True);
 #else
@@ -267,12 +261,6 @@ static PyObject *make_builtopts_info(void)
 #endif
 
 #ifdef WITH_OCIO
-	SetObjIncref(Py_True);
-#else
-	SetObjIncref(Py_False);
-#endif
-
-#ifdef WITH_PLAYER
 	SetObjIncref(Py_True);
 #else
 	SetObjIncref(Py_False);

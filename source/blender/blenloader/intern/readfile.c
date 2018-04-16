@@ -6810,15 +6810,6 @@ static void direct_link_area(FileData *fd, ScrArea *area)
 			SpaceTime *stime = (SpaceTime *)sl;
 			BLI_listbase_clear(&stime->caches);
 		}
-		else if (sl->spacetype == SPACE_LOGIC) {
-			SpaceLogic *slogic = (SpaceLogic *)sl;
-			
-			/* XXX: this is new stuff, which shouldn't be directly linking to gpd... */
-			if (slogic->gpd) {
-				slogic->gpd = newdataadr(fd, slogic->gpd);
-				direct_link_gpencil(fd, slogic->gpd);
-			}
-		}
 		else if (sl->spacetype == SPACE_SEQ) {
 			SpaceSeq *sseq = (SpaceSeq *)sl;
 			
@@ -7083,13 +7074,6 @@ static void lib_link_area(FileData *fd, bScreen *sc, ScrArea *area)
 
 				sclip->clip = newlibadr_real_us(fd, sc->id.lib, sclip->clip);
 				sclip->mask_info.mask = newlibadr_real_us(fd, sc->id.lib, sclip->mask_info.mask);
-				break;
-			}
-			case SPACE_LOGIC:
-			{
-				SpaceLogic *slogic = (SpaceLogic *)sl;
-
-				slogic->gpd = newlibadr_us(fd, sc->id.lib, slogic->gpd);
 				break;
 			}
 			default:
@@ -7562,11 +7546,6 @@ static void lib_link_workspace_layout_restore(struct IDNameLib_Map *id_map, Main
 					sclip->mask_info.mask = restore_pointer_by_name(id_map, (ID *)sclip->mask_info.mask, USER_REAL);
 					
 					sclip->scopes.ok = 0;
-				}
-				else if (sl->spacetype == SPACE_LOGIC) {
-					SpaceLogic *slogic = (SpaceLogic *)sl;
-					
-					slogic->gpd = restore_pointer_by_name(id_map, (ID *)slogic->gpd, USER_REAL);
 				}
 			}
 		}

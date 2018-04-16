@@ -432,25 +432,6 @@ static void do_versions_nodetree_frame_2_64_6(bNodeTree *ntree)
 	}
 }
 
-static void do_version_logic_264(ListBase *regionbase)
-{
-	ARegion *ar;
-
-	/* view settings for logic changed */
-	for (ar = regionbase->first; ar; ar = ar->next) {
-		if (ar->regiontype == RGN_TYPE_WINDOW) {
-			if (ar->v2d.keeptot == 0) {
-				ar->v2d.maxzoom = 1.5f;
-
-				ar->v2d.keepzoom = V2D_KEEPZOOM | V2D_LIMITZOOM | V2D_KEEPASPECT;
-				ar->v2d.keeptot = V2D_KEEPTOT_BOUNDS;
-				ar->v2d.align = V2D_ALIGN_NO_POS_Y | V2D_ALIGN_NO_NEG_X;
-				ar->v2d.keepofs = V2D_KEEPOFS_Y;
-			}
-		}
-	}
-}
-
 static void do_versions_affine_tracker_track(MovieTrackingTrack *track)
 {
 	int i;
@@ -1736,24 +1717,6 @@ void blo_do_versions_260(FileData *fd, Library *UNUSED(lib), Main *main)
 				}
 			}
 		} FOREACH_NODETREE_END
-	}
-
-	if (main->versionfile < 264 || (main->versionfile == 264 && main->subversionfile < 6)) {
-		bScreen *sc;
-
-		for (sc = main->screen.first; sc; sc = sc->id.next) {
-			ScrArea *sa;
-			for (sa = sc->areabase.first; sa; sa = sa->next) {
-				SpaceLink *sl;
-				if ( sa->spacetype == SPACE_LOGIC)
-					do_version_logic_264(&sa->regionbase);
-
-				for (sl = sa->spacedata.first; sl; sl = sl->next) {
-					if (sl->spacetype == SPACE_LOGIC)
-						do_version_logic_264(&sl->regionbase);
-				}
-			}
-		}
 	}
 
 	if (main->versionfile < 264 || (main->versionfile == 264 && main->subversionfile < 7)) {

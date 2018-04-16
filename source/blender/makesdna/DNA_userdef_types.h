@@ -397,7 +397,6 @@ typedef struct bTheme {
 	ThemeSpace toops;
 	ThemeSpace ttime;
 	ThemeSpace tnode;
-	ThemeSpace tlogic;
 	ThemeSpace tuserpref;
 	ThemeSpace tconsole;
 	ThemeSpace tclip;

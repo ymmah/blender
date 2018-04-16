@@ -900,7 +900,7 @@ void blo_do_versions_280(FileData *fd, Library *UNUSED(lib), Main *main)
 		}
 	}
 
-	{
+	if (!MAIN_VERSION_ATLEAST(main, 280, 6)) {
 		if (DNA_struct_elem_find(fd->filesdna, "SpaceOops", "int", "filter") == false) {
 			bScreen *sc;
 			ScrArea *sa;
@@ -932,7 +932,7 @@ void blo_do_versions_280(FileData *fd, Library *UNUSED(lib), Main *main)
 		}
 	}
 
-	{
+	if (!MAIN_VERSION_ATLEAST(main, 280, 6)) {
 		if (!DNA_struct_elem_find(fd->filesdna, "LightProbe", "float", "intensity")) {
 			for (LightProbe *probe = main->lightprobe.first; probe; probe = probe->id.next) {
 				probe->intensity = 1.0f;

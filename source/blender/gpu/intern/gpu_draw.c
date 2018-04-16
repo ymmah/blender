@@ -70,9 +70,6 @@
 #include "BKE_node.h"
 #include "BKE_scene.h"
 #include "BKE_DerivedMesh.h"
-#ifdef WITH_GAMEENGINE
-#  include "BKE_object.h"
-#endif
 
 #include "GPU_basic_shader.h"
 #include "GPU_buffers.h"
@@ -1553,7 +1550,7 @@ void GPU_end_dupli_object(void)
 }
 
 void GPU_begin_object_materials(
-        View3D *v3d, RegionView3D *rv3d, Scene *scene, ViewLayer *view_layer, Object *ob,
+        View3D *v3d, RegionView3D *rv3d, Scene *scene, ViewLayer *UNUSED(view_layer), Object *ob,
         bool glsl, bool *do_alpha_after)
 {
 	Material *ma;
@@ -1588,14 +1585,6 @@ void GPU_begin_object_materials(
 			use_opensubdiv = ccgdm->useGpuBackend;
 		}
 	}
-#endif
-
-#ifdef WITH_GAMEENGINE
-	if (rv3d->rflag & RV3D_IS_GAME_ENGINE) {
-		ob = BKE_object_lod_matob_get(ob, view_layer);
-	}
-#else
-	UNUSED_VARS(view_layer);
 #endif
 
 	/* initialize state */

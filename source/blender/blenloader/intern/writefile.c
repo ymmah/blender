@@ -3089,9 +3089,6 @@ static void write_area_regions(WriteData *wd, ScrArea *area)
 				writestruct(wd, DATA, bNodeTreePath, 1, path);
 			}
 		}
-		else if (sl->spacetype == SPACE_LOGIC) {
-			writestruct(wd, DATA, SpaceLogic, 1, sl);
-		}
 		else if (sl->spacetype == SPACE_CONSOLE) {
 			SpaceConsole *con = (SpaceConsole *)sl;
 			ConsoleLine *cl;

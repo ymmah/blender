@@ -1188,51 +1188,6 @@ static void draw_transp_spot_volume(Lamp *la, float x, float z, unsigned pos)
 	glDisable(GL_CULL_FACE);
 }
 
-#ifdef WITH_GAMEENGINE
-static void draw_transp_sun_volume(Lamp *la, unsigned pos)
-{
-	float box[8][3];
-
-	/* construct box */
-	box[0][0] = box[1][0] = box[2][0] = box[3][0] = -la->shadow_frustum_size;
-	box[4][0] = box[5][0] = box[6][0] = box[7][0] = +la->shadow_frustum_size;
-	box[0][1] = box[1][1] = box[4][1] = box[5][1] = -la->shadow_frustum_size;
-	box[2][1] = box[3][1] = box[6][1] = box[7][1] = +la->shadow_frustum_size;
-	box[0][2] = box[3][2] = box[4][2] = box[7][2] = -la->clipend;
-	box[1][2] = box[2][2] = box[5][2] = box[6][2] = -la->clipsta;
-
-	/* draw edges */
-	imm_draw_box(box, false, pos);
-
-	/* draw faces */
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glDepthMask(GL_FALSE);
-
-	/* draw backside darkening */
-	glCullFace(GL_FRONT);
-
-	glBlendFunc(GL_ZERO, GL_SRC_ALPHA);
-	immUniformColor4f(0.0f, 0.0f, 0.0f, 0.4f);
-
-	imm_draw_box(box, true, pos);
-
-	/* draw front side lighting */
-	glCullFace(GL_BACK);
-
-	glBlendFunc(GL_ONE, GL_ONE);
-	immUniformColor3f(0.2f, 0.2f, 0.2f);
-
-	imm_draw_box(box, true, pos);
-
-	/* restore state */
-	glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	glDisable(GL_BLEND);
-	glDepthMask(GL_TRUE);
-	glDisable(GL_CULL_FACE);
-}
-#endif
-
 void drawlamp(View3D *v3d, RegionView3D *rv3d, Base *base,
               const char dt, const short dflag, const unsigned char ob_wire_col[4], const bool is_obact)
 {
@@ -1252,22 +1207,7 @@ void drawlamp(View3D *v3d, RegionView3D *rv3d, Base *base,
 	                       !(base->flag_legacy & OB_FROMDUPLI) &&
 	                       !is_view);
 
-#ifdef WITH_GAMEENGINE
-	const bool drawshadowbox = (
-	        (rv3d->rflag & RV3D_IS_GAME_ENGINE) &&
-	        (dt > OB_WIRE) &&
-	        !(G.f & G_PICKSEL) &&
-	        (la->type == LA_SUN) &&
-	        ((la->mode & LA_SHAD_BUF) || 
-	        (la->mode & LA_SHAD_RAY)) &&
-	        (la->mode & LA_SHOW_SHADOW_BOX) &&
-	        !(base->flag_legacy & OB_FROMDUPLI) &&
-	        !is_view);
-#else
-	const bool drawshadowbox = false;
-#endif
-
-	if ((drawcone || drawshadowbox) && !v3d->transp) {
+	if (drawcone && !v3d->transp) {
 		/* in this case we need to draw delayed */
 		ED_view3d_after_add(&v3d->afterdraw_transp, base, dflag);
 		return;
@@ -1575,11 +1515,6 @@ void drawlamp(View3D *v3d, RegionView3D *rv3d, Base *base,
 			}
 		}
 
-#ifdef WITH_GAMEENGINE
-		if (drawshadowbox) {
-			draw_transp_sun_volume(la, pos);
-		}
-#endif
 	}
 	else if (la->type == LA_AREA) {
 		setlinestyle(3);
@@ -4299,11 +4234,7 @@ static void draw_mesh_fancy(
         const EvaluationContext *eval_ctx, Scene *scene, ViewLayer *view_layer, ARegion *ar, View3D *v3d, RegionView3D *rv3d, Base *base,
         const char dt, const unsigned char ob_wire_col[4], const short dflag)
 {
-#ifdef WITH_GAMEENGINE
-	Object *ob = (rv3d->rflag & RV3D_IS_GAME_ENGINE) ? BKE_object_lod_meshob_get(base->object, view_layer) : base->object;
-#else
 	Object *ob = base->object;
-#endif
 	Mesh *me = ob->data;
 	eWireDrawMode draw_wire = OBDRAW_WIRE_OFF;
 	bool /* no_verts,*/ no_edges, no_faces;
@@ -4717,11 +4648,7 @@ static void draw_mesh_fancy_new(
 		return;
 	}
 
-#ifdef WITH_GAMEENGINE
-	Object *ob = (rv3d->rflag & RV3D_IS_GAME_ENGINE) ? BKE_object_lod_meshob_get(base->object, view_layer) : base->object;
-#else
 	Object *ob = base->object;
-#endif
 	Mesh *me = ob->data;
 	eWireDrawMode draw_wire = OBDRAW_WIRE_OFF; /* could be bool draw_wire_overlay */
 	bool no_edges, no_faces;

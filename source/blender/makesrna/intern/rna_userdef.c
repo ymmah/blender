@@ -3102,12 +3102,6 @@ static void rna_def_userdef_themes(BlenderRNA *brna)
 	RNA_def_property_struct_type(prop, "ThemeNodeEditor");
 	RNA_def_property_ui_text(prop, "Node Editor", "");
 
-	prop = RNA_def_property(srna, "logic_editor", PROP_POINTER, PROP_NONE);
-	RNA_def_property_flag(prop, PROP_NEVER_NULL);
-	RNA_def_property_pointer_sdna(prop, NULL, "tlogic");
-	RNA_def_property_struct_type(prop, "ThemeLogicEditor");
-	RNA_def_property_ui_text(prop, "Logic Editor", "");
-	
 	prop = RNA_def_property(srna, "outliner", PROP_POINTER, PROP_NONE);
 	RNA_def_property_flag(prop, PROP_NEVER_NULL);
 	RNA_def_property_pointer_sdna(prop, NULL, "toops");
