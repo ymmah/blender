@@ -76,7 +76,7 @@ struct GPUUniformBufferDynamicItem {
 
 
 /* Prototypes */
-static GPUType get_padded_gpu_type(struct LinkData *link);
+static GPUType get_padded_gpu_type(struct GPUUniformBufferDynamicItem *input);
 static void gpu_uniformbuffer_inputs_sort(struct ListBase *inputs);
 
 static GPUUniformBufferDynamicItem *gpu_uniformbuffer_populate(
@@ -124,7 +124,7 @@ GPUUniformBuffer *GPU_uniformbuffer_create(int size, const void *data, char err_
  * Create dynamic UBO from parameters
  * Return NULL if failed to create or if \param inputs is empty.
  *
- * \param inputs ListBase of BLI_genericNodeN(GPUInput)
+ * \param inputs ListBase of GPUUniformBufferDynamicItem
  */
 GPUUniformBuffer *GPU_uniformbuffer_dynamic_create(ListBase *inputs, char err_out[256])
 {
@@ -158,10 +158,9 @@ GPUUniformBuffer *GPU_uniformbuffer_dynamic_create(ListBase *inputs, char err_ou
 	/* Make sure we comply to the ubo alignment requirements. */
 	gpu_uniformbuffer_inputs_sort(inputs);
 
-	for (LinkData *link = inputs->first; link; link = link->next) {
-		GPUInput *input = link->data;
-		GPUType gputype = get_padded_gpu_type(link);
-		gpu_uniformbuffer_populate(ubo, gputype, input->dynamicvec);
+	for (GPUUniformBufferDynamicItem *input = inputs->first; input; input = input->next) {
+		GPUType gputype = get_padded_gpu_type(input);
+		gpu_uniformbuffer_populate(ubo, gputype, input->data);
 	}
 
 	ubo->data = MEM_mallocN(ubo->buffer.size, __func__);
@@ -236,15 +235,14 @@ void GPU_uniformbuffer_dynamic_update(GPUUniformBuffer *ubo_)
  * We need to pad some data types (vec3) on the C side
  * To match the GPU expected memory block alignment.
  */
-static GPUType get_padded_gpu_type(LinkData *link)
+static GPUType get_padded_gpu_type(GPUUniformBufferDynamicItem *input)
 {
-	GPUInput *input = link->data;
 	GPUType gputype = input->type;
 
 	/* Unless the vec3 is followed by a float we need to treat it as a vec4. */
 	if (gputype == GPU_VEC3 &&
-	    (link->next != NULL) &&
-	    (((GPUInput *)link->next->data)->type != GPU_FLOAT))
+	    (input->next != NULL) &&
+	    (input->next->type != GPU_FLOAT))
 	{
 		gputype = GPU_VEC4;
 	}
@@ -259,7 +257,7 @@ static GPUType get_padded_gpu_type(LinkData *link)
 static int inputs_cmp(const void *a, const void *b)
 {
 	const LinkData *link_a = a, *link_b = b;
-	const GPUInput *input_a = link_a->data, *input_b = link_b->data;
+	const GPUUniformBufferDynamicItem *input_a = link_a->data, *input_b = link_b->data;
 	return input_a->type < input_b->type ? 1 : 0;
 }
 
@@ -273,11 +271,10 @@ static void gpu_uniformbuffer_inputs_sort(ListBase *inputs)
 	BLI_listbase_sort(inputs, inputs_cmp);
 
 	/* Creates a lookup table for the different types; */
-	LinkData *inputs_lookup[MAX_UBO_GPU_TYPE + 1] = {NULL};
+	GPUUniformBufferDynamicItem *inputs_lookup[MAX_UBO_GPU_TYPE + 1] = {NULL};
 	GPUType cur_type = MAX_UBO_GPU_TYPE + 1;
 
-	for (LinkData *link = inputs->first; link; link = link->next) {
-		GPUInput *input = link->data;
+	for (GPUUniformBufferDynamicItem *input = inputs->first; input; input = input->next) {
 		if (input->type == cur_type) {
 			continue;
 		}
@@ -292,27 +289,27 @@ static void gpu_uniformbuffer_inputs_sort(ListBase *inputs)
 		return;
 	}
 
-	LinkData *link = inputs_lookup[GPU_VEC3];
-	while (link != NULL && ((GPUInput *)link->data)->type == GPU_VEC3) {
-		LinkData *link_next = link->next;
+	GPUUniformBufferDynamicItem *input = inputs_lookup[GPU_VEC3];
+	while (input != NULL && input->type == GPU_VEC3) {
+		GPUUniformBufferDynamicItem *input_next = input->next;
 
 		/* If GPU_VEC3 is followed by nothing or a GPU_FLOAT, no need for aligment. */
-		if ((link_next == NULL) ||
-		    ((GPUInput *)link_next->data)->type == GPU_FLOAT)
+		if ((input_next == NULL) ||
+		    (input_next->type == GPU_FLOAT))
 		{
 			break;
 		}
 
 		/* If there is a float, move it next to current vec3. */
 		if (inputs_lookup[GPU_FLOAT] != NULL) {
-			LinkData *float_input = inputs_lookup[GPU_FLOAT];
+			GPUUniformBufferDynamicItem *float_input = inputs_lookup[GPU_FLOAT];
 			inputs_lookup[GPU_FLOAT] = float_input->next;
 
 			BLI_remlink(inputs, float_input);
 			BLI_insertlinkafter(inputs, link, float_input);
 		}
 
-		link = link_next;
+		input = input_next;
 	}
 }
 

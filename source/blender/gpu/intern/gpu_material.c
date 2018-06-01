@@ -123,6 +123,7 @@ struct GPUMaterial {
 
 	/* Used by 2.8 pipeline */
 	GPUUniformBuffer *ubo; /* UBOs for shader uniforms. */
+	ListBase ubo_data; /* GPUUniformBufferDynamicItem  */
 
 	/* Eevee SSS */
 	GPUUniformBuffer *sss_profile; /* UBO containing SSS profile. */
@@ -159,6 +160,13 @@ void GPU_material_free(ListBase *gpumaterial)
 		if (material->ubo != NULL) {
 			GPU_uniformbuffer_free(material->ubo);
 		}
+
+#if 0
+		for (LinkData *link = material->ubo_data.first; link; link = link->next) {
+			GPUInput *input = link->data;
+		}
+#endif
+		BLI_freelistN(&material->ubo_data);
 
 		if (material->sss_tex_profile != NULL) {
 			GPU_texture_free(material->sss_tex_profile);
@@ -210,7 +218,17 @@ GPUUniformBuffer *GPU_material_get_uniform_buffer(GPUMaterial *material)
  */
 void GPU_material_create_uniform_buffer(GPUMaterial *material, ListBase *inputs)
 {
-	material->ubo = GPU_uniformbuffer_dynamic_create(inputs, NULL);
+	BLI_assert(BLI_listbase_is_empty(&material->ubo_data));
+	for (LinkData *link = inputs->first; link; link = link->next) {
+		GPUInput *input_src = link->data;
+		GPUUniformBufferDynamicItem *input_dst = MEM_callocN(sizeof(GPUUniformBufferDynamicItem), __func__);
+
+		input_dst->type = input_src->type;
+		input_dst->size = 0;
+		input_dst->data = MEM_dupallocN(input_src->dynamicvec);
+		BLI_addtail(&material->ubo_data, input_dst);
+	}
+	material->ubo = GPU_uniformbuffer_dynamic_create(material->ubo_data, NULL);
 }
 
 void GPU_material_uniform_buffer_tag_dirty(ListBase *gpumaterials)

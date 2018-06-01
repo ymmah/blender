@@ -1316,6 +1316,8 @@ void BKE_material_eval(struct Depsgraph *depsgraph, Material *material)
 {
 	DEG_debug_print_eval(depsgraph, __func__, material->id.name, material);
 	if ((BLI_listbase_is_empty(&material->gpumaterial) == false)) {
+		//brb
+		//Don't tag but copy data here.
 		GPU_material_uniform_buffer_tag_dirty(&material->gpumaterial);
 	}
 }

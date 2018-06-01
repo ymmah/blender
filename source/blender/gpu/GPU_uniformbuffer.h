@@ -32,6 +32,8 @@
 #ifndef __GPU_UNIFORMBUFFER_H__
 #define __GPU_UNIFORMBUFFER_H__
 
+#include "GPU_material.h"
+
 struct ListBase;
 
 typedef struct GPUUniformBuffer GPUUniformBuffer;
