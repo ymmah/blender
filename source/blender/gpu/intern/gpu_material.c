@@ -662,7 +662,7 @@ void GPU_materials_free(void)
 	GPU_material_free(&defmaterial.gpumaterial);
 }
 
-static void UNUSED_FUNCTION(gpu_material_uniform_buffer_eval)(GPUMaterial *material)
+static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
 {
 	ListBase ubo_inputs;
 	for (GPUNode *node = material->nodes.first; node; node = node->next) {
@@ -686,7 +686,7 @@ void GPU_materials_eval(ListBase *gpumaterials)
 	for (LinkData *link = gpumaterials->first; link; link = link->next) {
 		GPUMaterial *material = link->data;
 		if (material->ubo != NULL) {
-			GPU_material_uniform_buffer_tag_dirty(&material->gpumaterial);
+			gpu_material_uniform_buffer_eval(material);
 		}
 		if (material->sss_profile != NULL) {
 			material->sss_dirty = true;

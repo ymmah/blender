@@ -41,7 +41,6 @@
 #include "DNA_view3d_types.h"
 
 #include "GPU_material.h"
-#include "GPU_uniformbuffer.h"
 
 #include "eevee_engine.h"
 #include "eevee_lut.h"
@@ -725,10 +724,6 @@ struct GPUMaterial *EEVEE_material_mesh_get(
 
 	GPUMaterial *mat = DRW_shader_find_from_material(ma, engine, options);
 	if (mat) {
-		GPUUniformBuffer *ubo = GPU_material_get_uniform_buffer(mat);
-		if (GPU_uniformbuffer_is_dirty(ubo)) {
-			GPU_uniformbuffer_dynamic_eval(ubo, GPU_material_get_inputs(mat));
-		}
 		return mat;
 	}
 
