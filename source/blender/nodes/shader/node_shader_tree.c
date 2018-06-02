@@ -616,6 +616,10 @@ void ntreeGPUMaterialNodes(bNodeTree *ntree, GPUMaterial *mat, short compatibili
 
 	ntreeFreeTree(localtree);
 	MEM_freeN(localtree);
+
+	for (bNode *node = ntree->nodes.first; node; node = node->next) {
+		for (socket)
+	}
 }
 
 bNodeTreeExec *ntreeShaderBeginExecTree_internal(bNodeExecContext *context, bNodeTree *ntree, bNodeInstanceKey parent_key)

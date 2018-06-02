@@ -36,6 +36,8 @@
 
 #include "gpu_codegen.h"
 
+#include "DNA_node_types.h"
+
 #include "GPU_extensions.h"
 #include "GPU_glew.h"
 #include "GPU_material.h"
@@ -190,7 +192,7 @@ GPUUniformBuffer *GPU_uniformbuffer_dynamic_create(ListBase *inputs, char err_ou
 	ubo->data = MEM_mallocN(ubo->buffer.size, __func__);
 
 	/* Initialize buffer data. */
-	GPU_uniformbuffer_dynamic_eval(&ubo->buffer, inputs);
+	GPU_uniformbuffer_dynamic_eval(&ubo->buffer, inputs, NULL);
 	GPU_uniformbuffer_dynamic_update(&ubo->buffer);
 	BLI_freelistN(&inputs_sorted);
 
@@ -235,12 +237,18 @@ void GPU_uniformbuffer_update(GPUUniformBuffer *ubo, const void *data)
 	gpu_uniformbuffer_update(ubo, data);
 }
 
+static float *gpu_find_default_value(bNodeTree *ntree, const char *name)
+{
+	printf("%s: %s | %s\n", __func__, ntree->id.name, name);
+	return NULL;
+}
+
 /**
  * Update the data based on unsorted GPUInput nodes.
  * They may either be the complete list of GPUMaterial inputs, or
  * already a sub-selection of only the UBO ones.
  */
-void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
+void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs, bNodeTree *ntree)
 {
 	BLI_assert(ubo_->type == GPU_UBO_DYNAMIC);
 	GPUUniformBufferDynamic *ubo = (GPUUniformBufferDynamic *)ubo_;
@@ -254,14 +262,24 @@ void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
 
 		if (gpu_input_is_dynamic_uniform(input)) {
 			BLI_assert(input != NULL);
-			BLI_assert(input->dynamicvec != NULL);
+			//BLI_assert(input->dynamicvec != NULL);
 			const int id = *sorted_id++;
 			GPUUniformBufferDynamicItem *item = BLI_findlink(&ubo->items, id);
+			float *value;
+
+			if (ntree != NULL) {
+				value = gpu_find_default_value(ntree, input->node->name);
+			} else {
+				 value = input->dynamicvec;
+			}
+#if 0
 			printf("%s: %d\n", __func__, (int)(item->size / sizeof(float)));
 			for (int i = 0; i < (item->size / sizeof(float)); i++) {
-				printf("%s: [%d] %4.2f\n", __func__, i, input->dynamicvec[i]);
+				printf("%s: [%d] %4.2f\n", __func__, i, value[i]);
 			}
-			memcpy((float *)ubo->data + item->offset, input->dynamicvec, item->size);
+			BLI_assert(value != NULL);
+			memcpy((float *)ubo->data + item->offset, value, item->size);
+#endif
 		}
 	}
 	ubo->flag |= GPU_UBO_FLAG_DIRTY;

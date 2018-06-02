@@ -272,7 +272,7 @@ bool GPU_material_use_domain_volume(GPUMaterial *mat);
 void GPU_pass_cache_garbage_collect(void);
 void GPU_pass_cache_free(void);
 
-void GPU_materials_eval(struct ListBase *gpumaterials);
+void GPU_materials_eval(struct ListBase *gpumaterials, struct bNodeTree *ntree);
 
 #ifdef __cplusplus
 }

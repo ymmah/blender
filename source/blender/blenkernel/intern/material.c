@@ -1316,6 +1316,6 @@ void BKE_material_eval(struct Depsgraph *depsgraph, Material *material)
 {
 	DEG_debug_print_eval(depsgraph, __func__, material->id.name, material);
 	if (!BLI_listbase_is_empty(&material->gpumaterial)) {
-		GPU_materials_eval(&material->gpumaterial);
+		GPU_materials_eval(&material->gpumaterial, material->nodetree);
 	}
 }

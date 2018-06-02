@@ -662,7 +662,7 @@ void GPU_materials_free(void)
 	GPU_material_free(&defmaterial.gpumaterial);
 }
 
-static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
+static void gpu_material_uniform_buffer_eval(GPUMaterial *material, bNodeTree *ntree)
 {
 	printf("%s\n", __func__);
 	ListBase ubo_inputs = {NULL, NULL};
@@ -673,6 +673,7 @@ static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
 			    (input->dynamictype == GPU_DYNAMIC_UBO) &&
 			    (input->link == NULL))
 			{
+#if 0
 				BLI_assert(input != NULL);
 				BLI_assert(input->dynamicvec != NULL);
 				printf("%s: %p > %p\n", __func__, input, input->dynamicvec);
@@ -680,6 +681,10 @@ static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
 				for (int i = 0; i < input->type; i++) {
 					printf("%s: [%d] %4.2f\n", __func__, i, input->dynamicvec[i]);
 				}
+#endif
+				/**
+				 * input->dynamicvec can't be trusted here, since it is a pointer to original data
+				 * we will retrieve its original value in the UBO eval routine. */
 				BLI_addtail(&ubo_inputs, BLI_genericNodeN(input));
 			}
 		}
@@ -705,18 +710,18 @@ static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
 	       BLI_listbase_count(&ubo_inputs));
 
 	if (!BLI_listbase_is_empty(&ubo_inputs)) {
-		GPU_uniformbuffer_dynamic_eval(material->ubo, &ubo_inputs);
+		GPU_uniformbuffer_dynamic_eval(material->ubo, &ubo_inputs, ntree);
 		BLI_freelistN(&ubo_inputs);
 	}
 }
 
-void GPU_materials_eval(ListBase *gpumaterials)
+void GPU_materials_eval(ListBase *gpumaterials, bNodeTree *ntree)
 {
 	printf("%s\n", __func__);
 	for (LinkData *link = gpumaterials->first; link; link = link->next) {
 		GPUMaterial *material = link->data;
 		if (material->ubo != NULL) {
-			gpu_material_uniform_buffer_eval(material);
+			gpu_material_uniform_buffer_eval(material, ntree);
 		}
 		if (material->sss_profile != NULL) {
 			material->sss_dirty = true;
