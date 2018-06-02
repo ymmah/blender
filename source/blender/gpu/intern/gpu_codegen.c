@@ -574,6 +574,7 @@ static int codegen_process_uniforms_functions(GPUMaterial *material, DynStr *ds,
 	GPUInput *input;
 	const char *name;
 	int builtins = 0;
+	ListBase ubo_inputs = {NULL, NULL};
 
 	/* print uniforms */
 	for (node = nodes->first; node; node = node->next) {
@@ -618,7 +619,8 @@ static int codegen_process_uniforms_functions(GPUMaterial *material, DynStr *ds,
 			else if (input->source == GPU_SOURCE_VEC_UNIFORM) {
 				if (input->dynamictype == GPU_DYNAMIC_UBO) {
 					if (!input->link) {
-						/* We handle the UBOuniforms separately directly from the GPUMaterial->inputs. */
+						/* We handle the UBOuniforms separately. */
+						BLI_addtail(&ubo_inputs, BLI_genericNodeN(input));
 					}
 				}
 				else if (input->dynamicvec) {
@@ -653,21 +655,18 @@ static int codegen_process_uniforms_functions(GPUMaterial *material, DynStr *ds,
 	}
 
 	/* Handle the UBO block separately. */
-	if ((material != NULL)) {
-		ListBase ubo_inputs = {NULL, NULL};
-		GPU_material_uniform_buffer_sort_and_create(material, &ubo_inputs);
+	if ((material != NULL) && !BLI_listbase_is_empty(&ubo_inputs)) {
+		GPU_material_uniform_buffer_create(material, &ubo_inputs);
 
-		if (GPU_material_get_uniform_buffer(material) != NULL) {
-			BLI_dynstr_appendf(ds, "\nlayout (std140) uniform %s {\n", GPU_UBO_BLOCK_NAME);
+		/* Inputs are sorted */
+		BLI_dynstr_appendf(ds, "\nlayout (std140) uniform %s {\n", GPU_UBO_BLOCK_NAME);
 
-			for (LinkData *link = ubo_inputs.first; link; link = link->next) {
-				input = link->data;
-
-				BLI_dynstr_appendf(ds, "\t%s unf%d;\n",
-					GPU_DATATYPE_STR[input->type], input->id);
-			}
-			BLI_dynstr_append(ds, "};\n");
+		for (LinkData *link = ubo_inputs.first; link; link = link->next) {
+			input = link->data;
+			BLI_dynstr_appendf(ds, "\t%s unf%d;\n",
+				GPU_DATATYPE_STR[input->type], input->id);
 		}
+		BLI_dynstr_append(ds, "};\n");
 		BLI_freelistN(&ubo_inputs);
 	}
 

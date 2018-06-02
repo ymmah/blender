@@ -130,22 +130,12 @@ static bool gpu_input_is_dynamic_uniform(GPUInput *input) {
  * Create dynamic UBO from parameters
  * Return NULL if failed to create or if \param inputs is empty.
  *
- * \param inputs ListBase of GPUInput
- * \param r_inputs ListBase with sorted LinkData->data(GPUInputs) of UBO uniforms
+ * \param inputs ListBase of BLI_genericNodeN(GPUInput)
  */
-GPUUniformBuffer *GPU_uniformbuffer_dynamic_sort_and_create(
-        ListBase *inputs, ListBase *r_inputs_sorted, char err_out[256])
+GPUUniformBuffer *GPU_uniformbuffer_dynamic_create(ListBase *inputs, char err_out[256])
 {
-	/* There is no point on creating an UBO if there is no valid input. */
-	int num_inputs = 0;
-	BLI_assert(BLI_listbase_is_empty(r_inputs_sorted));
-	for (GPUInput *input = inputs->first; input; input = input->next) {
-		if (gpu_input_is_dynamic_uniform(input)) {
-			BLI_addtail(r_inputs_sorted, BLI_genericNodeN(input));
-			num_inputs++;
-		}
-	}
-	if (num_inputs == 0) {
+	/* There is no point on creating an UBO if there is no arguments. */
+	if (BLI_listbase_is_empty(inputs)) {
 		return NULL;
 	}
 
@@ -171,21 +161,28 @@ GPUUniformBuffer *GPU_uniformbuffer_dynamic_sort_and_create(
 		return NULL;
 	}
 
-	ubo->id_lookup = MEM_mallocN(num_inputs * sizeof(*ubo->id_lookup), __func__);
+	ubo->id_lookup = MEM_mallocN(BLI_listbase_count(inputs) * sizeof(*ubo->id_lookup), __func__);
 
 	/* Make sure we comply to the ubo alignment requirements, yet keep a lookup table for their original order. */
-	gpu_uniformbuffer_inputs_sort(r_inputs_sorted);
+	ListBase inputs_sorted;
+	BLI_duplicatelist(&inputs_sorted, inputs);
+	gpu_uniformbuffer_inputs_sort(&inputs_sorted);
 
 	int *id_lookup = ubo->id_lookup;
 	int offset = 0;
-	for (LinkData *link = r_inputs_sorted->first; link; link = link->next) {
+	for (LinkData *link = inputs_sorted.first; link; link = link->next) {
 		if (gpu_input_is_dynamic_uniform(link->data)) {
 			GPUType gputype = get_padded_gpu_type(link);
 			gpu_uniformbuffer_populate(ubo, gputype, offset);
 			offset += gputype;
 
-			const int id = BLI_findindex(inputs, link->data);
-			BLI_assert(id != -1);
+			int id = 0;
+			for (LinkData *link_iter = inputs->first; link_iter; link_iter = link_iter->next, id++) {
+				if (link_iter->data == link->data) {
+					break;
+				}
+			}
+			BLI_assert(id < BLI_listbase_count(inputs));
 			*id_lookup++ = id;
 		}
 	}
@@ -195,6 +192,7 @@ GPUUniformBuffer *GPU_uniformbuffer_dynamic_sort_and_create(
 	/* Initialize buffer data. */
 	GPU_uniformbuffer_dynamic_eval(&ubo->buffer, inputs);
 	GPU_uniformbuffer_dynamic_update(&ubo->buffer);
+	BLI_freelistN(&inputs_sorted);
 
 	return &ubo->buffer;
 }
@@ -248,7 +246,8 @@ void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
 	GPUUniformBufferDynamic *ubo = (GPUUniformBufferDynamic *)ubo_;
 
 	int *sorted_id = ubo->id_lookup;
-	for (GPUInput *input = inputs->first; input; input = input->next) {
+	for (LinkData *link = inputs->first; link; link = link->next) {
+		GPUInput *input = link->data;
 
 		printf("%s: %p > %p\n", __func__, input, input->dynamicvec);
 		printf("%s %p\n", __func__, input->link);
@@ -265,6 +264,7 @@ void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
 			memcpy((float *)ubo->data + item->offset, input->dynamicvec, item->size);
 		}
 	}
+	ubo->flag |= GPU_UBO_FLAG_DIRTY;
 }
 
 /**

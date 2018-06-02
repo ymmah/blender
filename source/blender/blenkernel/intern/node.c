@@ -3777,5 +3777,5 @@ void BKE_nodetree_shading_params_eval(struct Depsgraph *depsgraph,
                                       const bNodeTree *ntree_src)
 {
 	DEG_debug_print_eval(depsgraph, __func__, ntree_src->id.name, ntree_dst);
-	//BKE_nodetree_copy_default_values(ntree_dst, ntree_src);
+	BKE_nodetree_copy_default_values(ntree_dst, ntree_src);
 }

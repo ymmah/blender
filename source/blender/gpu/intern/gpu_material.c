@@ -207,12 +207,11 @@ GPUUniformBuffer *GPU_material_get_uniform_buffer(GPUMaterial *material)
 
 /**
  * Create dynamic UBO from parameters
- * Inputs are sorted.
  * \param ListBase of BLI_genericNodeN(GPUInput)
  */
-void GPU_material_uniform_buffer_sort_and_create(GPUMaterial *material, ListBase *r_inputs)
+void GPU_material_uniform_buffer_create(GPUMaterial *material, ListBase *inputs)
 {
-	material->ubo = GPU_uniformbuffer_dynamic_sort_and_create(&material->inputs, r_inputs, NULL);
+	material->ubo = GPU_uniformbuffer_dynamic_create(inputs, NULL);
 }
 
 /* Eevee Subsurface scattering. */
@@ -663,13 +662,61 @@ void GPU_materials_free(void)
 	GPU_material_free(&defmaterial.gpumaterial);
 }
 
+static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
+{
+	printf("%s\n", __func__);
+	ListBase ubo_inputs = {NULL, NULL};
+#if 1
+	for (GPUNode *node = material->nodes.first; node; node = node->next) {
+		for (GPUInput *input = node->inputs.first; input; input = input->next) {
+			if ((input->source == GPU_SOURCE_VEC_UNIFORM) &&
+			    (input->dynamictype == GPU_DYNAMIC_UBO) &&
+			    (input->link == NULL))
+			{
+				BLI_assert(input != NULL);
+				BLI_assert(input->dynamicvec != NULL);
+				printf("%s: %p > %p\n", __func__, input, input->dynamicvec);
+				printf("%s: %d\n", __func__, (int)input->type);
+				for (int i = 0; i < input->type; i++) {
+					printf("%s: [%d] %4.2f\n", __func__, i, input->dynamicvec[i]);
+				}
+				BLI_addtail(&ubo_inputs, BLI_genericNodeN(input));
+			}
+		}
+	}
+#else
+	for (GPUInput *input = material->inputs.first; input; input = input->next) {
+		if ((input->source == GPU_SOURCE_VEC_UNIFORM) &&
+		    (input->dynamictype == GPU_DYNAMIC_UBO) &&
+		    (input->link == NULL))
+		{
+			BLI_assert(input != NULL);
+			BLI_assert(input->dynamicvec != NULL);
+			printf("%s: %p > %p\n", __func__, input, input->dynamicvec);
+			BLI_addtail(&ubo_inputs, BLI_genericNodeN(input));
+		}
+	}
+#endif
+
+	printf("%s: %d %d %d\n",
+	       __func__,
+	       BLI_listbase_count(&material->nodes),
+	       BLI_listbase_count(&material->inputs),
+	       BLI_listbase_count(&ubo_inputs));
+
+	if (!BLI_listbase_is_empty(&ubo_inputs)) {
+		GPU_uniformbuffer_dynamic_eval(material->ubo, &ubo_inputs);
+		BLI_freelistN(&ubo_inputs);
+	}
+}
+
 void GPU_materials_eval(ListBase *gpumaterials)
 {
 	printf("%s\n", __func__);
 	for (LinkData *link = gpumaterials->first; link; link = link->next) {
 		GPUMaterial *material = link->data;
 		if (material->ubo != NULL) {
-			GPU_uniformbuffer_dynamic_eval(material->ubo, &material->inputs);
+			gpu_material_uniform_buffer_eval(material);
 		}
 		if (material->sss_profile != NULL) {
 			material->sss_dirty = true;

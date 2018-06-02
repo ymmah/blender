@@ -39,8 +39,7 @@ typedef struct GPUUniformBuffer GPUUniformBuffer;
 typedef struct GPUUniformBufferDynamicItem GPUUniformBufferDynamicItem;
 
 GPUUniformBuffer *GPU_uniformbuffer_create(int size, const void *data, char err_out[256]);
-GPUUniformBuffer *GPU_uniformbuffer_dynamic_sort_and_create(
-        struct ListBase *inputs, struct ListBase *r_sorted_inputs, char err_out[256]);
+GPUUniformBuffer *GPU_uniformbuffer_dynamic_create(struct ListBase *inputs, char err_out[256]);
 
 void GPU_uniformbuffer_free(GPUUniformBuffer *ubo);
 
