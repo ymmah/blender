@@ -32,6 +32,7 @@
 #ifndef __GPU_UNIFORMBUFFER_H__
 #define __GPU_UNIFORMBUFFER_H__
 
+struct GPUInput;
 struct ListBase;
 
 typedef struct GPUUniformBuffer GPUUniformBuffer;
@@ -44,6 +45,8 @@ void GPU_uniformbuffer_free(GPUUniformBuffer *ubo);
 
 void GPU_uniformbuffer_update(GPUUniformBuffer *ubo, const void *data);
 void GPU_uniformbuffer_dynamic_update(GPUUniformBuffer *ubo_);
+
+void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, struct ListBase *inputs);
 
 void GPU_uniformbuffer_bind(GPUUniformBuffer *ubo, int number);
 void GPU_uniformbuffer_unbind(GPUUniformBuffer *ubo);

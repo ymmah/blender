@@ -123,6 +123,7 @@ struct GPUMaterial {
 
 	/* Used by 2.8 pipeline */
 	GPUUniformBuffer *ubo; /* UBOs for shader uniforms. */
+	ListBase *ubo_data; /* (float *)LinkData->data. */
 
 	/* Eevee SSS */
 	GPUUniformBuffer *sss_profile; /* UBO containing SSS profile. */
@@ -208,22 +209,9 @@ GPUUniformBuffer *GPU_material_get_uniform_buffer(GPUMaterial *material)
  * Create dynamic UBO from parameters
  * \param ListBase of BLI_genericNodeN(GPUInput)
  */
-void GPU_material_create_uniform_buffer(GPUMaterial *material, ListBase *inputs)
+void GPU_material_uniform_buffer_create(GPUMaterial *material, ListBase *inputs)
 {
 	material->ubo = GPU_uniformbuffer_dynamic_create(inputs, NULL);
-}
-
-void GPU_material_uniform_buffer_tag_dirty(ListBase *gpumaterials)
-{
-	for (LinkData *link = gpumaterials->first; link; link = link->next) {
-		GPUMaterial *material = link->data;
-		if (material->ubo != NULL) {
-			GPU_uniformbuffer_tag_dirty(material->ubo);
-		}
-		if (material->sss_profile != NULL) {
-			material->sss_dirty = true;
-		}
-	}
 }
 
 /* Eevee Subsurface scattering. */
@@ -672,4 +660,17 @@ void GPU_materials_free(void)
 		GPU_material_free(&wo->gpumaterial);
 	
 	GPU_material_free(&defmaterial.gpumaterial);
+}
+
+void GPU_materials_eval(ListBase *gpumaterials)
+{
+	for (LinkData *link = gpumaterials->first; link; link = link->next) {
+		GPUMaterial *material = link->data;
+		if (material->ubo != NULL) {
+			GPU_uniformbuffer_dynamic_eval(material->ubo, &material->inputs);
+		}
+		if (material->sss_profile != NULL) {
+			material->sss_dirty = true;
+		}
+	}
 }

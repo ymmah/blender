@@ -62,15 +62,16 @@ struct GPUUniformBuffer {
 
 typedef struct GPUUniformBufferDynamic {
 	GPUUniformBuffer buffer;
-	ListBase items;				/* GPUUniformBufferDynamicItem */
-	void *data;
+	ListBase items;				 /* GPUUniformBufferDynamicItem */
+	void *data;                  /* Continuous memory block to copy to GPU. */
+	int *id_lookup; /* Lookup table for the offset of each individual GPUInput. */
 	char flag;
 } GPUUniformBufferDynamic;
 
 struct GPUUniformBufferDynamicItem {
 	struct GPUUniformBufferDynamicItem *next, *prev;
 	GPUType gputype;
-	float *data;
+	int offset;
 	int size;
 };
 
@@ -80,7 +81,7 @@ static GPUType get_padded_gpu_type(struct LinkData *link);
 static void gpu_uniformbuffer_inputs_sort(struct ListBase *inputs);
 
 static GPUUniformBufferDynamicItem *gpu_uniformbuffer_populate(
-        GPUUniformBufferDynamic *ubo, const GPUType gputype, float *num);
+        GPUUniformBufferDynamic *ubo, const GPUType gputype, const int offset);
 
 /* Only support up to this type, if you want to extend it, make sure the
  * padding logic is correct for the new types. */
@@ -120,6 +121,11 @@ GPUUniformBuffer *GPU_uniformbuffer_create(int size, const void *data, char err_
 	return ubo;
 }
 
+static bool gpu_input_is_dynamic_uniform(GPUInput *input) {
+	return ((input->source == GPU_SOURCE_VEC_UNIFORM) &&
+	        (input->link == NULL));
+}
+
 /**
  * Create dynamic UBO from parameters
  * Return NULL if failed to create or if \param inputs is empty.
@@ -155,19 +161,39 @@ GPUUniformBuffer *GPU_uniformbuffer_dynamic_create(ListBase *inputs, char err_ou
 		return NULL;
 	}
 
-	/* Make sure we comply to the ubo alignment requirements. */
-	gpu_uniformbuffer_inputs_sort(inputs);
+	ubo->id_lookup = MEM_mallocN(BLI_listbase_count(inputs) * sizeof(*ubo->id_lookup), __func__);
 
-	for (LinkData *link = inputs->first; link; link = link->next) {
-		GPUInput *input = link->data;
-		GPUType gputype = get_padded_gpu_type(link);
-		gpu_uniformbuffer_populate(ubo, gputype, input->dynamicvec);
+	/* Make sure we comply to the ubo alignment requirements, yet keep a lookup table for their original order. */
+	ListBase inputs_sorted;
+	BLI_duplicatelist(&inputs_sorted, inputs);
+	gpu_uniformbuffer_inputs_sort(&inputs_sorted);
+
+	int *id_lookup = ubo->id_lookup;
+	int offset = 0;
+	for (LinkData *link = inputs_sorted.first; link; link = link->next) {
+		if (gpu_input_is_dynamic_uniform(link->data)) {
+			GPUType gputype = get_padded_gpu_type(link);
+			gpu_uniformbuffer_populate(ubo, gputype, offset);
+			offset += gputype;
+
+			int id = 0;
+			for (LinkData *link_iter = inputs->first; link_iter; link_iter = link_iter->next, id++) {
+				if (link_iter->data == link->data) {
+					break;
+				}
+			}
+			BLI_assert(id < BLI_listbase_count(inputs));
+			*id_lookup++ = id;
+		}
 	}
 
 	ubo->data = MEM_mallocN(ubo->buffer.size, __func__);
 
 	/* Initialize buffer data. */
+	GPU_uniformbuffer_dynamic_eval(&ubo->buffer, inputs);
 	GPU_uniformbuffer_dynamic_update(&ubo->buffer);
+	BLI_freelistN(&inputs_sorted);
+
 	return &ubo->buffer;
 }
 
@@ -207,6 +233,27 @@ void GPU_uniformbuffer_update(GPUUniformBuffer *ubo, const void *data)
 }
 
 /**
+ * Update the data based on unsorted GPUInput nodes.
+ * They may either be the complete list of GPUMaterial inputs, or
+ * already a sub-selection of only the UBO ones.
+ */
+void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
+{
+	BLI_assert(ubo_->type == GPU_UBO_DYNAMIC);
+	GPUUniformBufferDynamic *ubo = (GPUUniformBufferDynamic *)ubo_;
+
+	int *sorted_id = ubo->id_lookup;
+	for (LinkData *link = inputs->first; link; link = link->next) {
+		GPUInput *input = link->data;
+		if (gpu_input_is_dynamic_uniform(input)) {
+			const int id = *sorted_id++;
+			GPUUniformBufferDynamicItem *item = BLI_findlink(&ubo->items, id);
+			memcpy((float *)ubo->data + item->offset, input->dynamicvec, item->size);
+		}
+	}
+}
+
+/**
  * We need to recalculate the internal data, and re-generate it
  * from its populated items.
  */
@@ -214,12 +261,6 @@ void GPU_uniformbuffer_dynamic_update(GPUUniformBuffer *ubo_)
 {
 	BLI_assert(ubo_->type == GPU_UBO_DYNAMIC);
 	GPUUniformBufferDynamic *ubo = (GPUUniformBufferDynamic *)ubo_;
-
-	float *offset = ubo->data;
-	for (GPUUniformBufferDynamicItem *item = ubo->items.first; item; item = item->next) {
-		memcpy(offset, item->data, item->size);
-		offset += item->gputype;
-	}
 
 	if (ubo->flag & GPU_UBO_FLAG_INITIALIZED) {
 		gpu_uniformbuffer_update(ubo_, ubo->data);
@@ -321,16 +362,16 @@ static void gpu_uniformbuffer_inputs_sort(ListBase *inputs)
  * We simply flag it as dirty
  */
 static GPUUniformBufferDynamicItem *gpu_uniformbuffer_populate(
-        GPUUniformBufferDynamic *ubo, const GPUType gputype, float *num)
+        GPUUniformBufferDynamic *ubo, const GPUType gputype, const int offset)
 {
 	BLI_assert(gputype <= MAX_UBO_GPU_TYPE);
 	GPUUniformBufferDynamicItem *item = MEM_callocN(sizeof(GPUUniformBufferDynamicItem), __func__);
 
 	item->gputype = gputype;
-	item->data = num;
 	item->size = gputype * sizeof(float);
-	ubo->buffer.size += item->size;
+	item->offset = offset;
 
+	ubo->buffer.size += item->size;
 	ubo->flag |= GPU_UBO_FLAG_DIRTY;
 	BLI_addtail(&ubo->items, item);
 
