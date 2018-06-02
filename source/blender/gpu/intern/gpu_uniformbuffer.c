@@ -190,7 +190,6 @@ GPUUniformBuffer *GPU_uniformbuffer_dynamic_create(ListBase *inputs, char err_ou
 	ubo->data = MEM_mallocN(ubo->buffer.size, __func__);
 
 	/* Initialize buffer data. */
-	GPU_uniformbuffer_dynamic_eval(&ubo->buffer, inputs);
 	GPU_uniformbuffer_dynamic_update(&ubo->buffer);
 	BLI_freelistN(&inputs_sorted);
 
@@ -242,6 +241,7 @@ void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
 	BLI_assert(ubo_->type == GPU_UBO_DYNAMIC);
 	GPUUniformBufferDynamic *ubo = (GPUUniformBufferDynamic *)ubo_;
 
+#if 0
 	int *sorted_id = ubo->id_lookup;
 	for (LinkData *link = inputs->first; link; link = link->next) {
 		GPUInput *input = link->data;
@@ -251,6 +251,16 @@ void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
 			memcpy((float *)ubo->data + item->offset, input->dynamicvec, item->size);
 		}
 	}
+#else
+	int *sorted_id = ubo->id_lookup;
+	for (GPUInput *input = inputs->first; input; input = input->next) {
+		if (gpu_input_is_dynamic_uniform(input)) {
+			const int id = *sorted_id++;
+			GPUUniformBufferDynamicItem *item = BLI_findlink(&ubo->items, id);
+			memcpy((float *)ubo->data + item->offset, input->dynamicvec, item->size);
+		}
+	}
+#endif
 }
 
 /**
@@ -269,8 +279,6 @@ void GPU_uniformbuffer_dynamic_update(GPUUniformBuffer *ubo_)
 		ubo->flag |= GPU_UBO_FLAG_INITIALIZED;
 		gpu_uniformbuffer_initialize(ubo_, ubo->data);
 	}
-
-	ubo->flag &= ~GPU_UBO_FLAG_DIRTY;
 }
 
 /**
@@ -407,6 +415,13 @@ void GPU_uniformbuffer_unbind(GPUUniformBuffer *ubo)
 int GPU_uniformbuffer_bindpoint(GPUUniformBuffer *ubo)
 {
 	return ubo->bindpoint;
+}
+
+bool GPU_uniformbuffer_is_dirty(GPUUniformBuffer *ubo_)
+{
+	BLI_assert(ubo_->type == GPU_UBO_DYNAMIC);
+	GPUUniformBufferDynamic *ubo = (GPUUniformBufferDynamic *)ubo_;
+	return (ubo->flag & GPU_UBO_FLAG_DIRTY) != 0;
 }
 
 void GPU_uniformbuffer_tag_dirty(GPUUniformBuffer *ubo_)
