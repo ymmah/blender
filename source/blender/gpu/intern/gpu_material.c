@@ -662,12 +662,31 @@ void GPU_materials_free(void)
 	GPU_material_free(&defmaterial.gpumaterial);
 }
 
+static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
+{
+	ListBase ubo_inputs;
+	for (GPUNode *node = material->nodes.first; node; node = node->next) {
+		for (GPUInput *input = node->inputs.first; input; input = input->next) {
+			if ((input->source == GPU_SOURCE_VEC_UNIFORM) &&
+			    (input->dynamictype == GPU_DYNAMIC_UBO))
+			{
+				BLI_addtail(&ubo_inputs, BLI_genericNodeN(input));
+			}
+		}
+	}
+
+	if (!BLI_listbase_is_empty(&ubo_inputs)) {
+		GPU_uniformbuffer_dynamic_eval(material->ubo, &material->inputs);
+		BLI_freelistN(&ubo_inputs);
+	}
+}
+
 void GPU_materials_eval(ListBase *gpumaterials)
 {
 	for (LinkData *link = gpumaterials->first; link; link = link->next) {
 		GPUMaterial *material = link->data;
 		if (material->ubo != NULL) {
-			GPU_uniformbuffer_dynamic_eval(material->ubo, &material->inputs);
+			gpu_material_uniform_buffer_eval(material);
 		}
 		if (material->sss_profile != NULL) {
 			material->sss_dirty = true;
