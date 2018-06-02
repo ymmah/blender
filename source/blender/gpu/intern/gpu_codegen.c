@@ -1146,8 +1146,12 @@ static void gpu_nodes_extract_dynamic_inputs(GPUShader *shader, ListBase *inputs
 				if (input->bindtex)
 					extract = 1;
 			}
-			else if (input->dynamicvec)
+			else if (input->dynamictype == GPU_DYNAMIC_UBO) {
+				/* Don't extract UBOs */
+			}
+			else if (input->dynamicvec) {
 				extract = 1;
+			}
 
 			if (extract)
 				input->shaderloc = GPU_shader_get_uniform(shader, input->shadername);
