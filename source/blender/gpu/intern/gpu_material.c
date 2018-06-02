@@ -664,25 +664,55 @@ void GPU_materials_free(void)
 
 static void gpu_material_uniform_buffer_eval(GPUMaterial *material)
 {
-	ListBase ubo_inputs;
+	printf("%s\n", __func__);
+	ListBase ubo_inputs = {NULL, NULL};
+#if 0
 	for (GPUNode *node = material->nodes.first; node; node = node->next) {
+		printf("%s: %d\n",
+		       __func__,
+		       BLI_listbase_count(&node->inputs));
+
 		for (GPUInput *input = node->inputs.first; input; input = input->next) {
 			if ((input->source == GPU_SOURCE_VEC_UNIFORM) &&
-			    (input->dynamictype == GPU_DYNAMIC_UBO))
+			    (input->dynamictype == GPU_DYNAMIC_UBO) &&
+			    (input->link == NULL))
 			{
+				BLI_assert(input != NULL);
+				BLI_assert(input->dynamicvec != NULL);
+				printf("%s: %p > %p\n", __func__, input, input->dynamicvec);
 				BLI_addtail(&ubo_inputs, BLI_genericNodeN(input));
 			}
 		}
 	}
+#else
+	for (GPUInput *input = material->inputs.first; input; input = input->next) {
+		if ((input->source == GPU_SOURCE_VEC_UNIFORM) &&
+		    (input->dynamictype == GPU_DYNAMIC_UBO) &&
+		    (input->link == NULL))
+		{
+			BLI_assert(input != NULL);
+			BLI_assert(input->dynamicvec != NULL);
+			printf("%s: %p > %p\n", __func__, input, input->dynamicvec);
+			BLI_addtail(&ubo_inputs, BLI_genericNodeN(input));
+		}
+	}
+#endif
+
+	printf("%s: %d %d %d\n",
+	       __func__,
+	       BLI_listbase_count(&material->nodes),
+	       BLI_listbase_count(&material->inputs),
+	       BLI_listbase_count(&ubo_inputs));
 
 	if (!BLI_listbase_is_empty(&ubo_inputs)) {
-		GPU_uniformbuffer_dynamic_eval(material->ubo, &material->inputs);
+		GPU_uniformbuffer_dynamic_eval(material->ubo, &ubo_inputs);
 		BLI_freelistN(&ubo_inputs);
 	}
 }
 
 void GPU_materials_eval(ListBase *gpumaterials)
 {
+	printf("%s\n", __func__);
 	for (LinkData *link = gpumaterials->first; link; link = link->next) {
 		GPUMaterial *material = link->data;
 		if (material->ubo != NULL) {

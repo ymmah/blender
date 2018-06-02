@@ -206,6 +206,9 @@ static void gpu_uniformbuffer_dynamic_reset(GPUUniformBufferDynamic *ubo)
 	if (ubo->data) {
 		MEM_freeN(ubo->data);
 	}
+	if (ubo->id_lookup) {
+		MEM_freeN(ubo->id_lookup);
+	}
 	BLI_freelistN(&ubo->items);
 }
 
@@ -245,9 +248,19 @@ void GPU_uniformbuffer_dynamic_eval(GPUUniformBuffer *ubo_, ListBase *inputs)
 	int *sorted_id = ubo->id_lookup;
 	for (LinkData *link = inputs->first; link; link = link->next) {
 		GPUInput *input = link->data;
+
+		printf("%s: %p > %p\n", __func__, input, input->dynamicvec);
+		printf("%s %p\n", __func__, input->link);
+
 		if (gpu_input_is_dynamic_uniform(input)) {
+			BLI_assert(input != NULL);
+			BLI_assert(input->dynamicvec != NULL);
 			const int id = *sorted_id++;
 			GPUUniformBufferDynamicItem *item = BLI_findlink(&ubo->items, id);
+			printf("%s: %d\n", __func__, (int)(item->size / sizeof(float)));
+			for (int i = 0; i < (item->size / sizeof(float)); i++) {
+				printf("%s: [%d] %4.2f\n", __func__, i, input->dynamicvec[i]);
+			}
 			memcpy((float *)ubo->data + item->offset, input->dynamicvec, item->size);
 		}
 	}
