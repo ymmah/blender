@@ -441,6 +441,14 @@ class DATA_PT_text_boxes(CurveButtonsPanelText, Panel):
         text = context.curve
 
         layout.operator("font.textbox_add", icon='ADD')
+        sub = layout.column()
+        sub.prop(text, "overflow", text="Overflow")
+        # SCALE overflow is only supported for single text boxes and
+        # if only width or height are not zero
+        sub.active = (text.overflow != 'SCALE') or \
+                ((len(text.text_boxes) == 1) and \
+                 (text.text_boxes[0].width > 0) ^ \
+                 (text.text_boxes[0].height > 0))
 
         for i, box in enumerate(text.text_boxes):
 
