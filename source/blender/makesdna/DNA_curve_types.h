@@ -467,13 +467,14 @@ typedef enum eBezTriple_KeyframeType {
 
 /* CharInfo.flag */
 enum {
-	/* note: CU_CHINFO_WRAP and CU_CHINFO_SMALLCAPS_TEST are set dynamically */
+	/* note: CU_CHINFO_WRAP, CU_CHINFO_SMALLCAPS_TEST and CU_CHINFO_TRUNCATE are set dynamically */
 	CU_CHINFO_BOLD            = 1 << 0,
 	CU_CHINFO_ITALIC          = 1 << 1,
 	CU_CHINFO_UNDERLINE       = 1 << 2,
 	CU_CHINFO_WRAP            = 1 << 3,  /* wordwrap occurred here */
 	CU_CHINFO_SMALLCAPS       = 1 << 4,
 	CU_CHINFO_SMALLCAPS_CHECK = 1 << 5,  /* set at runtime, checks if case switching is needed */
+	CU_CHINFO_OVERFLOW        = 1 << 6,  /* Set at runtime, indicates char that doesn't fit in text boxes. */
 };
 
 /* mixed with KEY_LINEAR but define here since only curve supports */

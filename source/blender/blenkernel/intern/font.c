@@ -683,7 +683,6 @@ static bool vfont_to_curve(Object *ob, Curve *cu, int mode, ListBase *r_nubase,
 	/* Length of the text disregarding \n breaks. */
 	float current_line_length = 0.0f;
 	float longest_line_length = 0.0f;
-	int overflow_index = -1;
 
 	/* Text at the beginning of the last used text-box (use for y-axis alignment).
 	 * We overallocate by one to simplify logic of getting last char. */
@@ -776,7 +775,7 @@ static bool vfont_to_curve(Object *ob, Curve *cu, int mode, ListBase *r_nubase,
 	oldvfont = NULL;
 
 	for (i = 0; i < slen; i++) {
-		custrinfo[i].flag &= ~(CU_CHINFO_WRAP | CU_CHINFO_SMALLCAPS_CHECK);
+		custrinfo[i].flag &= ~(CU_CHINFO_WRAP | CU_CHINFO_SMALLCAPS_CHECK | CU_CHINFO_OVERFLOW);
 	}
 
 	for (i = 0; i <= slen; i++) {
@@ -869,9 +868,8 @@ makebreak:
 				}
 				if (dobreak) {
 					if (tb_scale.h == 0.0f) {
-						if (overflow_index == -1) {
-							overflow_index = i;
-						}
+						/* Note: If underlined text is truncated away, the extra space is also truncated. */
+						custrinfo[i + 1].flag |= CU_CHINFO_OVERFLOW;
 					}
 					goto makebreak;
 				}
@@ -907,7 +905,7 @@ makebreak:
 				}
 				else if (last_line == -1) {
 					last_line = lnr + 1;
-					overflow_index = i;
+					info->flag |= CU_CHINFO_OVERFLOW;
 				}
 			}
 
@@ -1334,16 +1332,15 @@ makebreak:
 
 		ct = chartransdata;
 		for (i = 0; i < slen; i++) {
-			if ((cu->overflow == CU_OVERFLOW_TRUNCATE) &&
-			    (ob && ob->mode != OB_MODE_EDIT) &&
-			    (overflow_index != -1))
-			{
-				if (i > overflow_index) {
-					break;
-				}
-			}
 			unsigned int cha = (unsigned int) mem[i];
 			info = &(custrinfo[i]);
+
+			if ((cu->overflow == CU_OVERFLOW_TRUNCATE) &&
+			    (ob && ob->mode != OB_MODE_EDIT) &&
+			    (info->flag & CU_CHINFO_OVERFLOW))
+			{
+				break;
+			}
 
 			if (info->flag & CU_CHINFO_SMALLCAPS_CHECK) {
 				cha = towupper(cha);
