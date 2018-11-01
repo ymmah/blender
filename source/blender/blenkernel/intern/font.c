@@ -1418,13 +1418,13 @@ makebreak:
 			}
 		}
 		else {
-			/* This is the really complicated case, the one I'm not sure we can find a magic bullet for.
+			/* This is the really complicated case, as we would need to iterate over this function
+			 * a few times until we get a working result.
 			 * Keep in mind that there is no single number that will make all fit to the end.
 			 * In a way, our ultimate goal is to get the number of extra lines to zero.
+			 * For now we simply don't support it. If we tackle this we can apply the same approach
+			 * for when there are more than one text box.
 			 */
-			if ((last_line != -1) && (lnr > last_line)) {
-				scale_to_fit = (float) last_line / lnr;
-			}
 		}
 	}
 
