@@ -1427,14 +1427,6 @@ makebreak:
 			}
 		}
 	}
-#ifdef DEBUG_PRINT
-	printf("%s: %d %d %4.9f %4.2f\n",
-	       __func__,
-	       last_line,
-	       lnr,
-	       scale_to_fit,
-	       longest_line_length);
-#endif
 
 	/* Scale to fit only works for single text box layouts. */
 	if ((scale_to_fit < 1.0f) &&
